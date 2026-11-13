@@ -1,0 +1,59 @@
+# === RetroBat distribution (do NOT commit the runtime/install) ===
+/bios/
+/cheats/
+/decorations/
+/emulationstation/
+/emulators/
+/system/
+/roms/
+/saves/
+/screenshots/
+/music/
+/videos/
+/wheels/
+BatGui.exe
+RetroBat.exe
+RetroBat.log
+*.log
+license.txt
+notice.pdf
+notice_french.pdf
+retrobat.ini
+
+# === Secrets ===
+.env
+.env.*
+.dev.vars
+*.pem
+*.key
+
+# === Node / pnpm ===
+node_modules/
+.pnpm-store/
+dist/
+build/
+*.tsbuildinfo
+
+# === Cloudflare Wrangler ===
+.wrangler/
+.mf/
+
+# === Drizzle ===
+drizzle/meta/_journal.json.bak
+
+# === .NET build artifacts ===
+[Bb]in/
+[Oo]bj/
+*.user
+.vs/
+
+# === Local ROMs / aria2 binaries ===
+*.aria2
+aria2c.exe
+/client-roms/
+
+# === OS / editor ===
+.DS_Store
+Thumbs.db
+.idea/
+*.swp

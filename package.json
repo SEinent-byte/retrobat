@@ -1,0 +1,17 @@
+{
+  "name": "retrobat-launcher",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Subscription retro-game launcher over RetroBat (licensing + trial + anti-abuse + admin panel)",
+  "packageManager": "pnpm@9.12.0",
+  "workspaces": [
+    "backend",
+    "admin-web",
+    "shared"
+  ],
+  "scripts": {
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test"
+  }
+}
