@@ -26,8 +26,11 @@ _Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.
 
 ### GitHub
 - Repo PRIVATE: `SEinent-byte/retrobat`, branch `main`.
-- Push uses inline PAT (no credential stored in `.git/config`).
-- **PAT `ghp_3hR5...` was exposed in chat — ROTATE it.** Next push needs a new PAT or Git Credential Manager.
+- **PAT stored in Windows Credential Manager (GCM).** `git push origin main` works with NO inline token, and survives session clears. Do NOT pass tokens inline anymore.
+- PAT was exposed in chat → rotating is still advised. If rotated, re-store once:
+  ```
+  printf "protocol=https\nhost=github.com\nusername=SEinent-byte\npassword=<NEW_PAT>\n\n" | git credential approve
+  ```
 
 ## BLOCKER — disk C: 100% full
 - ~526M free after clearing npm-cache. Not enough for node_modules + .NET builds.
@@ -38,6 +41,6 @@ _Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.
 2. Then `pnpm install`, backend D1 schema + `/auth/*` + `/license/status`.
 
 ## Pending user actions
-- [ ] Rotate GitHub PAT.
 - [ ] Free disk C: (or provide D:).
 - [ ] Verify `dotnet` on PATH.
+- [ ] (Optional) Rotate GitHub PAT, then re-store via the `git credential approve` one-liner above.
