@@ -11,9 +11,12 @@ catalog over the seed, revealing every console and game.
 ## Contents
 
 ```
-roms/nes/_mi_cuenta.nes    RBACCT: marker pseudo-ROM (launch proxy -> account menu)
-roms/nes/_mi_cuenta.svg    avatar icon
-roms/nes/gamelist.xml      single "Mi Cuenta — Sin sesion" entry (pre-login strings)
+roms/nes/_mi_cuenta.nes        RBACCT: marker pseudo-ROM (launch proxy -> account menu)
+roms/nes/_mi_cuenta.svg        avatar icon
+roms/nes/gamelist.xml          single "Mi Cuenta — Sin sesion" entry (pre-login strings)
+.emulationstation/es_input.cfg default keyboard mapping so ES does not force the
+                               first-run "CONFIGURE INPUT / NO GAMEPADS DETECTED"
+                               prompt (keyboard-only; no gamepad required)
 ```
 
 ## Assembling a shippable dist
@@ -23,6 +26,7 @@ When building the standalone tree (`D:\es-build\dist`):
 1. Do **not** bundle dummy test ROMs. Empty console folders are hidden by ES
    (`System "<x>" has no games! Ignoring it.`), so only the seeded `nes` shows.
 2. Copy `distro/seed/roms/*` into `dist/roms/`.
+3. Copy `distro/seed/.emulationstation/es_input.cfg` into `dist/.emulationstation/`.
 
 The Inno installer then packages `dist/*` as-is (no installer logic needed).
 
