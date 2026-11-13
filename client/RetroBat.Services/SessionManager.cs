@@ -1,5 +1,6 @@
 using RetroBat.Core.Contracts;
 using RetroBat.Core.Device;
+using RetroBat.Core.Security;
 using RetroBat.Services.Api;
 using RetroBat.Services.Auth;
 
@@ -14,13 +15,18 @@ namespace RetroBat.Services;
 public sealed class SessionManager(
     ApiClient api,
     TokenStore store,
-    GoogleOAuthFlow oauth)
+    GoogleOAuthFlow oauth,
+    ClockGuard clock)
 {
     private Session? _session;
     private DeviceIdentity? _device;
 
     public DeviceIdentity Device => _device ??= DeviceFingerprintProvider.Collect();
     public bool IsSignedIn => _session is not null;
+
+    /// <summary>Last local-clock anti-tamper check (SPEC §6), updated on each
+    /// license status fetch.</summary>
+    public ClockCheck ClockState { get; private set; } = new(ClockStatus.Ok, 0, 0);
 
     /// <summary>Load a persisted session, if any, at startup.</summary>
     public bool LoadPersisted()
@@ -59,8 +65,16 @@ public sealed class SessionManager(
         store.Clear();
     }
 
-    public Task<LicenseState> GetStatusAsync(CancellationToken ct = default) =>
-        WithValidSession((token) => api.GetLicenseStatusAsync(token, ct), ct);
+    public async Task<LicenseState> GetStatusAsync(CancellationToken ct = default)
+    {
+        var state = await WithValidSession(
+            (token) => api.GetLicenseStatusAsync(token, ct), ct).ConfigureAwait(false);
+        // Server time is authoritative: advance the monotonic mark and
+        // re-check the local clock for roll-back (SPEC §6).
+        clock.RecordServerTime(state.ServerTime);
+        ClockState = clock.Check();
+        return state;
+    }
 
     public Task<ActivateTrialResponse> ActivateTrialAsync(CancellationToken ct = default) =>
         WithValidSession((token) => api.ActivateTrialAsync(token, Device, ct), ct);

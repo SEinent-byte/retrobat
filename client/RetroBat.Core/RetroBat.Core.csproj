@@ -11,6 +11,8 @@
     <!-- WMI hardware signals + Windows Registry (MachineGuid anchor). -->
     <PackageReference Include="System.Management" Version="8.0.0" />
     <PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
+    <!-- DPAPI-protected monotonic clock mark (anti-tamper, SPEC §6). -->
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
   </ItemGroup>
 
 </Project>

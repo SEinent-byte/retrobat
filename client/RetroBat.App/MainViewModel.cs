@@ -1,5 +1,6 @@
 using RetroBat.App.Mvvm;
 using RetroBat.Core.Contracts;
+using RetroBat.Core.Security;
 using RetroBat.Services;
 using RetroBat.Services.Api;
 
@@ -74,7 +75,10 @@ public sealed class MainViewModel : ViewModelBase
         RunBusy("Checking license…", async () =>
         {
             var state = await _session.GetStatusAsync().ConfigureAwait(true);
-            StatusText = Format(state);
+            var text = Format(state);
+            if (_session.ClockState.Status == ClockStatus.RolledBack)
+                text += "\n⚠ System clock set back — time is verified online.";
+            StatusText = text;
             CanStartTrial = state.Status == LicenseStatus.None;
         });
 

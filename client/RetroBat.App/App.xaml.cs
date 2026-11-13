@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using RetroBat.Core.Security;
 using RetroBat.Services;
 using RetroBat.Services.Api;
 using RetroBat.Services.Auth;
@@ -17,7 +18,8 @@ public partial class App : Application
         var api = new ApiClient(config);
         var store = new TokenStore();
         var oauth = new GoogleOAuthFlow(config);
-        var session = new SessionManager(api, store, oauth);
+        var clock = new ClockGuard();
+        var session = new SessionManager(api, store, oauth, clock);
         var vm = new MainViewModel(session);
 
         var window = new MainWindow { DataContext = vm };
