@@ -39,3 +39,7 @@ export const authLogoutSchema = z.object({
 export const activateTrialSchema = z.object({
   device: deviceIdentitySchema,
 });
+
+export const downloadUrlSchema = z.object({
+  gameId: z.string().min(1),
+});

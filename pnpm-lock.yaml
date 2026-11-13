@@ -16,6 +16,9 @@ importers:
       '@retrobat/shared':
         specifier: workspace:*
         version: link:../shared
+      aws4fetch:
+        specifier: 1.0.20
+        version: 1.0.20
       drizzle-orm:
         specifier: 0.36.4
         version: 0.36.4(@cloudflare/workers-types@4.20241127.0)
@@ -551,6 +554,9 @@ packages:
 
   as-table@1.0.55:
     resolution: {integrity: sha512-xvsWESUJn0JN421Xb9MQw6AsMHRCUknCe0Wjlxvjud80mU4E6hQf1A6NzQKcYNmYw62MfzEtXc+badstZP3JpQ==}
+
+  aws4fetch@1.0.20:
+    resolution: {integrity: sha512-/djoAN709iY65ETD6LKCtyyEI04XIBP5xVvfmNxsEP0uJB5tyaGBztSryRr4HqMStr9R06PisQE7m9zDTXKu6g==}
 
   blake3-wasm@2.1.5:
     resolution: {integrity: sha512-F1+K8EbfOZE49dtoPtmxUQrpXaBIl3ICvasLh+nJta0xkz+9kF/7uet9fLnwKqhDrmj6g+6K3Tw9yQPUg2ka5g==}
@@ -1194,6 +1200,8 @@ snapshots:
   as-table@1.0.55:
     dependencies:
       printable-characters: 1.0.42
+
+  aws4fetch@1.0.20: {}
 
   blake3-wasm@2.1.5: {}
 

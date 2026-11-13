@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import type { AppBindings } from "./env.js";
 import { ApiException, fail } from "./lib/http.js";
 import { authRoutes } from "./routes/auth.js";
+import { catalogRoutes, downloadRoutes } from "./routes/catalog.js";
 import { licenseRoutes } from "./routes/license.js";
 
 const app = new Hono<AppBindings>();
@@ -12,6 +13,8 @@ app.get("/health", (c) => c.json({ ok: true, apiVersion: API_VERSION }));
 
 app.route("/auth", authRoutes);
 app.route("/license", licenseRoutes);
+app.route("/catalog", catalogRoutes);
+app.route("/download", downloadRoutes);
 
 app.notFound(() => {
   throw fail.notFound("no such route");

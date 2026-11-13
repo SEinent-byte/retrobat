@@ -12,11 +12,14 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply retrobat-db --local",
-    "db:migrate:remote": "wrangler d1 migrations apply retrobat-db --remote"
+    "db:migrate:remote": "wrangler d1 migrations apply retrobat-db --remote",
+    "db:seed:local": "wrangler d1 execute retrobat-db --local --file seeds/0001_systems.sql",
+    "db:seed:remote": "wrangler d1 execute retrobat-db --remote --file seeds/0001_systems.sql"
   },
   "dependencies": {
     "@hono/zod-validator": "0.4.1",
     "@retrobat/shared": "workspace:*",
+    "aws4fetch": "1.0.20",
     "drizzle-orm": "0.36.4",
     "hono": "4.6.14",
     "jose": "5.9.6",
