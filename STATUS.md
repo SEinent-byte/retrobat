@@ -64,10 +64,18 @@ _Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.
 - `seeds/0001_systems.sql`: 10 RetroBat consoles, applied LOCAL + REMOTE.
 - Deployed to prod (Worker Version `392f5a83`). Verified on dev: visibility, presign, license_required, not_found.
 
-## NEXT (autonomous): §14 step 7 (client aria2 + emulator launch + play event) — needs POST /play/event added to backend first. Then step 8 admin panel, step 9 billing.
+## §14 step 7: DONE — play events + aria2 downloads + emulator launch (commit `3ab38e5`, prod Version `43110f29`).
+- Backend `POST /play/event` (start opens row, end closes it).
+- Client `GameService`: /catalog -> aria2 download -> emulatorLauncher.exe (-system/-emulator libretro/-core/-rom) -> play start/end. UI catalog list + Play + progress bar.
+- `aria2c.exe` 1.37.0 fetched into `client/RetroBat.App/tools/` (gitignored; bundle at package time).
 
-## Pending USER (not blocking autonomous work)
-- [ ] **Test interactive Google sign-in** (needs your Google account + browser): run the App, click "Sign in with Google". Reports any OAuth redirect issue.
-- [ ] **First admin email** to seed into remote `admins` (owner). Pedro vs Anthonio — awaiting choice; seeded via one `wrangler d1 execute --remote` when decided (needed for step 8 admin panel, not before).
-- [ ] aria2 binary: client bundles `aria2c.exe` (gitignored). Provide or let me fetch at build time (step 7).
+## Admin seeded
+- `admins`: anthoniogarciareyes25@gmail.com (id `54936e54-...`), remote + local.
+
+## NEXT (autonomous): §14 step 8 — admin panel (`/admin-web` Cloudflare Pages) + backend `/admin/*` endpoints.
+## Blocked: step 9 (billing) — payment provider still TBD (SPEC §12). Step 10 (domain) — user.
+
+## Pending USER (not blocking)
+- [ ] **Test interactive Google sign-in** (your Google account + browser): `cd client && "C:\Program Files\dotnet\dotnet.exe" run --project RetroBat.App`, click Sign in.
+- [ ] **Payment provider** decision to unblock step 9 (Stripe or other).
 - [ ] (Optional) Rotate GitHub PAT, then re-store via the `git credential approve` one-liner above.
