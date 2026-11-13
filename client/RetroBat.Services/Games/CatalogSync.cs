@@ -73,7 +73,8 @@ public sealed class CatalogSync(ApiClient api, SessionManager session, RetrobatP
         foreach (var (folder, games) in byFolder)
         {
             var dir = paths.RomsDir(folder);
-            var acctFile = WriteAccountEntry(dir, games);
+            var ext = Path.GetExtension(games[0].RomFilename);
+            var acctFile = WriteAccountEntry(dir, ext);
             WriteGameList(dir, games, acctFile, acctShort, acctDesc);
         }
 
@@ -199,12 +200,27 @@ public sealed class CatalogSync(ApiClient api, SessionManager session, RetrobatP
         File.WriteAllText(path, StubPrefix + gameId, Encoding.ASCII);
     }
 
+    /// <summary>Write a standalone "Mi Cuenta" entry (account pseudo-ROM + icon +
+    /// a gamelist holding only it) into a console folder, with no games. Seeds a
+    /// fresh install so the user reaches sign-in before any catalog exists; the
+    /// launch proxy turns the entry into the account menu, and the first login
+    /// re-syncs the real catalog over it. Uses the same marker, icon and status
+    /// strings as a logged-in sync (single source of truth).</summary>
+    public static void WriteAccountOnly(
+        string dir, string ext, LicenseState? status = null, string? email = null)
+    {
+        Directory.CreateDirectory(dir);
+        var acctFile = WriteAccountEntry(dir, ext);
+        WriteGameList(
+            dir, [], acctFile,
+            AccountStatusText.Short(status), AccountStatusText.Full(status, email));
+    }
+
     /// <summary>Write the account pseudo-ROM into a console folder, reusing the
     /// console's own ROM extension so EmulationStation lists it. Returns the
     /// filename to reference from gamelist.xml.</summary>
-    private static string WriteAccountEntry(string dir, IReadOnlyList<GameDto> games)
+    private static string WriteAccountEntry(string dir, string ext)
     {
-        var ext = Path.GetExtension(games[0].RomFilename);
         if (string.IsNullOrEmpty(ext))
             ext = ".zip";
         var fileName = AccountFileBase + ext;

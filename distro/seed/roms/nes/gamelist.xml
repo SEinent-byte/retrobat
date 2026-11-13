@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<gameList>
+  <game>
+    <path>./_mi_cuenta.nes</path>
+    <name>Mi Cuenta — Sin sesion</name>
+    <desc>No has iniciado sesion. Pulsa para entrar con Google.</desc>
+    <image>./_mi_cuenta.svg</image>
+  </game>
+</gameList>
