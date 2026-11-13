@@ -42,17 +42,17 @@ _Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.
 - D1 schema `migrations/0000` = all SPEC §3 tables + refresh_tokens + admin_audit. Applied LOCAL only.
 - Endpoints live: `POST /auth/exchange|refresh|logout`, `GET /license/status`, `POST /license/activate-trial`.
 - `tsc --noEmit` green. Trial flow verified e2e on `wrangler dev` (none -> trial_active -> trial_already_used).
-- Worker NOT deployed to prod yet (needs secrets, see below).
+## Prod DEPLOYED (2026-11-13)
+- Worker live: **https://retrobat-api.anthoniogarciareyes25.workers.dev** (`/health` ok, apiVersion 0.1.0).
+- All 8 secrets set via `wrangler secret put` (from `.dev.vars`).
+- Remote D1 migrated (`0000` applied, 22 commands).
+- **.NET 8 SDK installed**: 8.0.428 at `C:\Program Files\dotnet`. New shells get it on PATH (winget machine PATH); this bash session may still miss it — call full path if needed.
 
-## NEXT — §14 step 3 (client) can start in parallel
-- Client scope `/client` (.NET WPF): Google OAuth loopback+PKCE, fingerprint, show license status.
-- Backend step 4 (anti-farm) already folded into step 2; step 5 (clock anti-tamper) is client-side.
-- Local backend run: `cd backend && pnpm dev` (uses `backend/.dev.vars`). Local D1 migrated.
+## NEXT — §14 step 3 (client WPF .NET 8)
+- Scope `/client`: Google OAuth loopback+PKCE, device fingerprint, show license status against prod API.
+- Backend step 4 (anti-farm) folded into step 2; step 5 (clock anti-tamper) is client-side.
+- Local backend run: `cd backend && pnpm dev` (`backend/.dev.vars`). Local D1 migrated.
 
-## Pending USER actions (blockers for prod / client)
-- [ ] **Deploy Worker to prod** needs: `cd backend && npx wrangler deploy`, then set secrets:
-      `wrangler secret put GOOGLE_CLIENT_ID|GOOGLE_CLIENT_SECRET|JWT_SECRET|R2_ACCESS_KEY_ID|R2_SECRET_ACCESS_KEY|R2_ENDPOINT|R2_BUCKET`
-      and `npm run db:migrate:remote` to apply schema to remote D1.
-- [ ] **Seed first admin** in remote D1 (owner email) once deployed.
-- [ ] Verify `dotnet` on PATH (needed for client, §14 step 3). Still not found in this session.
+## Pending USER decision
+- [ ] **First admin email** to seed into remote `admins` (owner). Pedro vs Anthonio — awaiting choice, then seeded via one `wrangler d1 execute --remote`.
 - [ ] (Optional) Rotate GitHub PAT, then re-store via the `git credential approve` one-liner above.
