@@ -8,32 +8,37 @@ _Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.
 **MVP progress ≈ 80%.** Functional core DONE + deployed to prod. Remaining = monetization + distribution.
 
 **What works right now (prod):**
-- Backend Worker live, all user + admin endpoints. Latest prod Version `45976e2` era (redeploy `cd backend && npx wrangler deploy` after pulls).
-- Client WPF: Google login, fingerprint, trial, anti-tamper, catalog sync into RetroBat.
-- Admin panel live: https://retrobat-admin-7nj.pages.dev (login needs web-client, see Pending USER).
-- ES-native: games show inside RetroBat; proxy launcher downloads ROM on launch (HTTPS direct). Proxy INSTALLED on this machine.
+- Backend Worker live, all user + admin endpoints + ROM upload. Prod Version `c197a131` (redeploy `cd backend && npx wrangler deploy` after pulls).
+- Client WPF: Google login, fingerprint, trial, anti-tamper, catalog sync. Email now persisted (DPAPI).
+- Admin panel live: https://retrobat-admin-7nj.pages.dev (login needs web-client, see Pending USER). ROM upload UI added.
+- ES-native: games show inside RetroBat; proxy downloads ROM on launch (HTTPS direct). "Mi Cuenta" native entry (avatar + live trial status + login/trial/logout menu). Proxy INSTALLED on this machine.
+- Distro Phase 1: proxy can launch RetroArch DIRECTLY per core (no RetroBat emulatorLauncher). Verified: `-core fceumm -rom test.nes` launched RetroArch.
 
 **Progress breakdown:**
 | Area | % |
 |---|---|
 | Infra / auth / license / trial / anti-farm / anti-tamper | 100 |
 | Catalog / R2 download / play analytics | 100 |
-| Admin API + panel | 95 (login needs web-client) |
-| ES-native integration (sync + proxy) | 90 (real-ROM emulation untested) |
+| Admin API + panel + ROM upload (deployed `c197a131`) | 95 (login needs web-client) |
+| ES-native integration (sync + proxy + Mi Cuenta) | 90 (real-ROM emulation untested) |
 | Billing (step 9) | 0 — BLOCKED on provider |
-| Domain (step 10) | 0 — user |
-| Admin ROM upload to R2 (DONE, deploy pending) + distribution installer/auto-update | ~40 |
+| Domain (step 10) | 0 — user, NON-blocking (loopback OAuth needs no domain) |
+| Standalone distro (own MIT/GPL frontend) | ~20 (Phase 1 launch DONE) |
 
-**Next session should tackle (in order):**
-1. **Deploy Worker to prod** (`cd backend && npx wrangler deploy`) — ROM-upload endpoint committed on `main` but NOT yet deployed (classifier blocked the deploy; user runs it).
-2. Admin login web-client (user action) → then test panel live (incl. ROM upload UI).
-3. Step 9 billing once provider chosen (Stripe recommended): `/billing/checkout` + `/billing/webhook` + subscriptions.
-4. Step 10 domain + Google redirect update.
-5. Distribution: single installer bundling .NET runtime + proxy install + auto-update.
+**▶ ACTIVE TRACK: standalone commercial distro (replaces RetroBat).**
+Decision (see memory `retrobat-licensing-distribution`): CANNOT bundle RetroBat (CC BY-NC-SA NonCommercial). Build our own Windows distro from MIT (batocera-emulationstation) + GPL (RetroArch) + our branding. **Full plan: `C:\Users\a\.claude\plans\fuzzy-leaping-fiddle.md`.**
+- **DONE Phase 1** (commit `08dc783`): launcher runs `retroarch.exe -L cores\<core>_libretro.dll <rom>` (distro mode) with fallback to RetroBat launcher; CatalogSync generates own `es_systems.cfg.dist` from catalog (DefaultCore baked into command). NOT yet: live-test of es_systems.cfg.dist (needs a sync), real-ROM emulation.
+- **NEXT Phase 0** (blocking, research): web-verify core licenses. 2 suspects likely NON-commercial → swap: `snes9x` (→ mesen-s/bsnes GPL), `genesis_plus_gx` (Eke-Eke "NOT for commercial use" → PicoDrive/BlastEm, verify). If swapped, edit `backend/seeds/0001_systems.sql` default_core + re-seed D1. Also obtain MIT ES prebuilt + stage RetroArch + 4 missing cores (snes9x,mgba,mupen64plus_next,pcsx_rearmed).
+- **Phase 2**: Inno Setup installer, self-contained publish, assemble dist/ tree. **Phase 3**: auto-update (`GET /client/version` on Worker + R2 bundles). **Phase 4**: rebrand (pick product NAME — pending user) + own theme.
 
-**Repo:** `SEinent-byte/retrobat` (private), branch `main`, clean. Push works (PAT in Credential Manager). `.NET` via `C:\Program Files\dotnet\dotnet.exe`.
+**Other pending (non-distro):**
+- Step 9 billing — BLOCKED on payment provider choice (Stripe recommended).
+- Step 10 domain — user buys domain (non-blocking for MVP).
+- Admin web OAuth client — user (see Pending USER below).
 
-**Rollback proxy if needed:** `client/scripts/uninstall-launcher.ps1`.
+**Repo:** `SEinent-byte/retrobat` (private), branch `main`, clean. Push works (PAT in Credential Manager). `.NET` via `C:\Program Files\dotnet\dotnet.exe`. Build client: `cd client && "C:\Program Files\dotnet\dotnet.exe" build RetroBat.sln`.
+
+**Rollback proxy if needed:** `client/scripts/uninstall-launcher.ps1`. Reinstall proxy after client changes: `client/scripts/install-launcher.ps1` (kill `emulatorLauncher`/`retroarch` procs first if locked).
 
 ---
 
