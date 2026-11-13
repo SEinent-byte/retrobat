@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Win32;
+using RetroBat.Core.Branding;
 
 namespace RetroBat.Core.Security;
 
@@ -26,7 +27,7 @@ public sealed record ClockCheck(ClockStatus Status, long HighWaterMs, long Local
 /// </summary>
 public sealed class ClockGuard
 {
-    private const string KeyPath = @"Software\RetroBat";
+    private const string KeyPath = BrandInfo.RegistryKeyPath;
     private const string ValueName = "clock";
     // Allow modest forward skew between the server clock and this machine.
     private const long SkewToleranceMs = 5 * 60 * 1000;

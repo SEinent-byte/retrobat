@@ -1,4 +1,5 @@
 using System.Windows;
+using RetroBat.Core.Branding;
 using RetroBat.Core.Contracts;
 using RetroBat.Services;
 using RetroBat.Services.Account;
@@ -24,6 +25,7 @@ public partial class AccountMenuWindow : Window
         _session = session;
         _sync = sync;
         InitializeComponent();
+        BackButton.Content = $"Volver a {BrandInfo.Name}";
         Loaded += async (_, _) => await RefreshAsync().ConfigureAwait(true);
     }
 

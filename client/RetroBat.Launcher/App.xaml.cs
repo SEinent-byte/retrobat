@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.IO;
 using System.Windows;
+using RetroBat.Core.Branding;
 using RetroBat.Core.Contracts;
 using RetroBat.Core.Security;
 using RetroBat.Services;
@@ -211,5 +212,5 @@ public partial class App : Application
     }
 
     private static void Fatal(string message) =>
-        MessageBox.Show(message, "RetroBat", MessageBoxButton.OK, MessageBoxImage.Warning);
+        MessageBox.Show(message, BrandInfo.Name, MessageBoxButton.OK, MessageBoxImage.Warning);
 }

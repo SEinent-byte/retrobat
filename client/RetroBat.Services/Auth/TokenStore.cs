@@ -2,19 +2,20 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Win32;
+using RetroBat.Core.Branding;
 using RetroBat.Core.Contracts;
 
 namespace RetroBat.Services.Auth;
 
 /// <summary>
 /// Persists the session + refresh tokens in the Windows Registry under
-/// HKCU\Software\RetroBat, DPAPI-protected (CurrentUser scope, SPEC §8.3).
-/// Tied to the Windows user; not portable to another machine without a
-/// fresh login.
+/// HKCU\<see cref="BrandInfo.RegistryKeyPath"/>, DPAPI-protected (CurrentUser
+/// scope, SPEC §8.3). Tied to the Windows user; not portable to another
+/// machine without a fresh login.
 /// </summary>
 public sealed class TokenStore
 {
-    private const string KeyPath = @"Software\RetroBat";
+    private const string KeyPath = BrandInfo.RegistryKeyPath;
     private const string SessionValue = "session";
     private const string EmailValue = "email";
     private static readonly byte[] Entropy =

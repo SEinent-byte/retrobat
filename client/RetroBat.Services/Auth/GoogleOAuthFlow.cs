@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Web;
+using RetroBat.Core.Branding;
 using RetroBat.Core.Security;
 
 namespace RetroBat.Services.Auth;
@@ -108,9 +109,10 @@ public sealed class GoogleOAuthFlow(ClientConfig config)
     private static async Task WriteClosePageAsync(HttpListenerContext context)
     {
         const string html =
-            "<!doctype html><meta charset=utf-8><title>RetroBat</title>" +
+            "<!doctype html><meta charset=utf-8><title>" + BrandInfo.Name + "</title>" +
             "<body style='font-family:sans-serif;text-align:center;margin-top:3rem'>" +
-            "<h2>Sign-in complete</h2><p>You can close this tab and return to RetroBat.</p>";
+            "<h2>Sign-in complete</h2><p>You can close this tab and return to "
+            + BrandInfo.Name + ".</p>";
         var buffer = System.Text.Encoding.UTF8.GetBytes(html);
         context.Response.ContentType = "text/html; charset=utf-8";
         context.Response.ContentLength64 = buffer.Length;
