@@ -54,9 +54,20 @@ _Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.
 - Services: GoogleOAuthFlow (loopback+PKCE), ApiClient (X-Api-Version, typed errors), TokenStore (DPAPI), SessionManager (auto-refresh on 401).
 - App points at prod Worker by default (`ClientConfig.Default`).
 - Build client: `cd client && "C:\Program Files\dotnet\dotnet.exe" build RetroBat.sln`. Run: `... run --project RetroBat.App`.
-- Step 4 (anti-farm) folded into step 2. Step 5 (clock anti-tamper, client) and step 6 (backend catalog/systems/download) are next, both autonomous.
+- Step 4 (anti-farm) folded into step 2.
+
+## §14 step 5: DONE — client clock anti-tamper (commit in main).
+- `ClockGuard` (Core): DPAPI forward-only high-water mark of server time in HKCU\Software\RetroBat; SessionManager advances it each `/license/status` and warns on local roll-back. Server stays authoritative.
+
+## §14 step 6: DONE — backend catalog + R2 downloads + systems seed (commit `ae55605`).
+- `GET /catalog` (license-filtered), `POST /download/url` (R2 presigned 300s via aws4fetch).
+- `seeds/0001_systems.sql`: 10 RetroBat consoles, applied LOCAL + REMOTE.
+- Deployed to prod (Worker Version `392f5a83`). Verified on dev: visibility, presign, license_required, not_found.
+
+## NEXT (autonomous): §14 step 7 (client aria2 + emulator launch + play event) — needs POST /play/event added to backend first. Then step 8 admin panel, step 9 billing.
 
 ## Pending USER (not blocking autonomous work)
 - [ ] **Test interactive Google sign-in** (needs your Google account + browser): run the App, click "Sign in with Google". Reports any OAuth redirect issue.
 - [ ] **First admin email** to seed into remote `admins` (owner). Pedro vs Anthonio — awaiting choice; seeded via one `wrangler d1 execute --remote` when decided (needed for step 8 admin panel, not before).
+- [ ] aria2 binary: client bundles `aria2c.exe` (gitignored). Provide or let me fetch at build time (step 7).
 - [ ] (Optional) Rotate GitHub PAT, then re-store via the `git credential approve` one-liner above.
