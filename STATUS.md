@@ -37,12 +37,22 @@ _Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.
   printf "protocol=https\nhost=github.com\nusername=SEinent-byte\npassword=<NEW_PAT>\n\n" | git credential approve
   ```
 
-## NEXT STEP — §14 step 2 (backend)
-1. `pnpm install` (root). D: has 77G free; prefer pnpm store on D: if C: gets tight.
-2. Backend: D1 schema + migrations (drizzle) for SPEC §3 tables.
-3. Backend endpoints `/auth/exchange`, `/auth/refresh`, `/license/status` against frozen `@retrobat/shared` contracts.
-4. Then client (§14 step 3) can start in parallel (separate worktree, `/client` scope only).
+## §14 step 2: DONE — backend auth + license (commit `afaa01c`).
+- Stack: Hono + drizzle-orm/D1 + jose. `pnpm install` done (lockfile committed).
+- D1 schema `migrations/0000` = all SPEC §3 tables + refresh_tokens + admin_audit. Applied LOCAL only.
+- Endpoints live: `POST /auth/exchange|refresh|logout`, `GET /license/status`, `POST /license/activate-trial`.
+- `tsc --noEmit` green. Trial flow verified e2e on `wrangler dev` (none -> trial_active -> trial_already_used).
+- Worker NOT deployed to prod yet (needs secrets, see below).
 
-## Pending user actions
-- [ ] Verify `dotnet` on PATH (needed only for client, §14 step 3). `dotnet --version` in a NEW shell; still not found in this session.
+## NEXT — §14 step 3 (client) can start in parallel
+- Client scope `/client` (.NET WPF): Google OAuth loopback+PKCE, fingerprint, show license status.
+- Backend step 4 (anti-farm) already folded into step 2; step 5 (clock anti-tamper) is client-side.
+- Local backend run: `cd backend && pnpm dev` (uses `backend/.dev.vars`). Local D1 migrated.
+
+## Pending USER actions (blockers for prod / client)
+- [ ] **Deploy Worker to prod** needs: `cd backend && npx wrangler deploy`, then set secrets:
+      `wrangler secret put GOOGLE_CLIENT_ID|GOOGLE_CLIENT_SECRET|JWT_SECRET|R2_ACCESS_KEY_ID|R2_SECRET_ACCESS_KEY|R2_ENDPOINT|R2_BUCKET`
+      and `npm run db:migrate:remote` to apply schema to remote D1.
+- [ ] **Seed first admin** in remote D1 (owner email) once deployed.
+- [ ] Verify `dotnet` on PATH (needed for client, §14 step 3). Still not found in this session.
 - [ ] (Optional) Rotate GitHub PAT, then re-store via the `git credential approve` one-liner above.
