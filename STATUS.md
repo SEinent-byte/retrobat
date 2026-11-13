@@ -2,7 +2,12 @@
 
 _Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.md`)._
 
-## Phase 0: COMPLETE (infra). Only blocker left = free disk C:.
+## Phase 0: COMPLETE (infra). Disk C: blocker RESOLVED (14G free).
+
+## §14 step 1: DONE — `/shared` contracts FROZEN at `API_VERSION` 0.1.0.
+- `@retrobat/shared` type-only package on `main` (commit `d050579`). `tsc --noEmit` passes.
+- Files: version / enums / models / errors / api / admin / routes. See `shared/README.md`.
+- Fan-out is now UNBLOCKED. Rule: module agents never edit `/shared`; a contract change re-freezes here + bumps `API_VERSION`.
 
 ### Cloudflare (account `anthoniogarciareyes25@gmail.com`, id `2263e816c670f9c372ddd4db453bc458`)
 - **D1** `retrobat-db` → id `4ffd9d56-de6d-4a89-b61b-60d2193a072f` (binding `DB`)
@@ -32,15 +37,12 @@ _Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.
   printf "protocol=https\nhost=github.com\nusername=SEinent-byte\npassword=<NEW_PAT>\n\n" | git credential approve
   ```
 
-## BLOCKER — disk C: 100% full
-- ~526M free after clearing npm-cache. Not enough for node_modules + .NET builds.
-- Options: free C: (Disk Cleanup, uninstall, or move RetroBat `emulationstation/` 2.1G + `emulators/` 1.1G to another drive), OR use a `D:` drive for pnpm store / builds.
-
-## NEXT STEP (once disk ok)
-1. `§14 paso 1`: define + FREEZE `/shared` API contracts (types + schema) before any module fan-out.
-2. Then `pnpm install`, backend D1 schema + `/auth/*` + `/license/status`.
+## NEXT STEP — §14 step 2 (backend)
+1. `pnpm install` (root). D: has 77G free; prefer pnpm store on D: if C: gets tight.
+2. Backend: D1 schema + migrations (drizzle) for SPEC §3 tables.
+3. Backend endpoints `/auth/exchange`, `/auth/refresh`, `/license/status` against frozen `@retrobat/shared` contracts.
+4. Then client (§14 step 3) can start in parallel (separate worktree, `/client` scope only).
 
 ## Pending user actions
-- [ ] Free disk C: (or provide D:).
-- [ ] Verify `dotnet` on PATH.
+- [ ] Verify `dotnet` on PATH (needed only for client, §14 step 3). `dotnet --version` in a NEW shell; still not found in this session.
 - [ ] (Optional) Rotate GitHub PAT, then re-store via the `git credential approve` one-liner above.
