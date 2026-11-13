@@ -50,17 +50,17 @@ Source: "{#DistDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#AppFullName}"; Filename: "{app}\{#AppExeName}"; \
-  Parameters: "--home ""{app}"""; WorkingDir: "{app}"
+  Parameters: "--home ""{app}"" --windowed"; WorkingDir: "{app}"
 Name: "{group}\{cm:UninstallProgram,{#AppFullName}}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#AppFullName}"; Filename: "{app}\{#AppExeName}"; \
-  Parameters: "--home ""{app}"""; WorkingDir: "{app}"; Tasks: desktopicon
+  Parameters: "--home ""{app}"" --windowed"; WorkingDir: "{app}"; Tasks: desktopicon
 
 [Run]
 ; Visual C++ runtime for the MSVC-built EmulationStation (Win32/x86).
 ; TODO before release: bundle vc_redist.x86.exe under redist\ and enable:
 ; Filename: "{tmp}\vc_redist.x86.exe"; Parameters: "/install /quiet /norestart"; \
 ;   StatusMsg: "Installing Visual C++ runtime..."; Check: VCRedistNeeded
-Filename: "{app}\{#AppExeName}"; Parameters: "--home ""{app}"""; WorkingDir: "{app}"; \
+Filename: "{app}\{#AppExeName}"; Parameters: "--home ""{app}"" --windowed"; WorkingDir: "{app}"; \
   Description: "{cm:LaunchProgram,{#AppFullName}}"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
