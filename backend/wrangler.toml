@@ -2,13 +2,13 @@ name = "retrobat-api"
 main = "src/index.ts"
 compatibility_date = "2026-11-13"
 compatibility_flags = ["nodejs_compat"]
-account_id = "efe1aea247077f2ce85d61c705bdff00"
+account_id = "2263e816c670f9c372ddd4db453bc458"
 
 # D1 (SQLite) — created in Phase 0
 [[d1_databases]]
 binding = "DB"
 database_name = "retrobat-db"
-database_id = "b443cc2f-06a0-488f-b3fc-f9b9c0d1a62d"
+database_id = "4ffd9d56-de6d-4a89-b61b-60d2193a072f"
 
 # R2 (ROM storage) — bucket pending: enable R2 in dashboard, then
 #   wrangler r2 bucket create retrobat-roms
