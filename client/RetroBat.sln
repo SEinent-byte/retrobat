@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RetroBat.Core", "RetroBat.Core\RetroBat.Core.csproj", "{6B379D3A-D461-472A-A746-25E79E5C6799}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RetroBat.Services", "RetroBat.Services\RetroBat.Services.csproj", "{8AE60ACD-72BC-423C-A95A-1FF7AF9933C0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RetroBat.App", "RetroBat.App\RetroBat.App.csproj", "{338793F1-C7CF-464F-AC58-200E7DF33E73}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6B379D3A-D461-472A-A746-25E79E5C6799}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6B379D3A-D461-472A-A746-25E79E5C6799}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6B379D3A-D461-472A-A746-25E79E5C6799}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6B379D3A-D461-472A-A746-25E79E5C6799}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8AE60ACD-72BC-423C-A95A-1FF7AF9933C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8AE60ACD-72BC-423C-A95A-1FF7AF9933C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8AE60ACD-72BC-423C-A95A-1FF7AF9933C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8AE60ACD-72BC-423C-A95A-1FF7AF9933C0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{338793F1-C7CF-464F-AC58-200E7DF33E73}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{338793F1-C7CF-464F-AC58-200E7DF33E73}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{338793F1-C7CF-464F-AC58-200E7DF33E73}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{338793F1-C7CF-464F-AC58-200E7DF33E73}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
