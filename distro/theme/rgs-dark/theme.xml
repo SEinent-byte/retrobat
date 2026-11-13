@@ -1,0 +1,46 @@
+<!--
+  RGS Dark — a minimal permissive EmulationStation theme.
+  Colors only, applied over the engine's default layout, so it stays robust
+  across engine versions. Brand accent: #1f6feb. License: MIT (see LICENSE).
+-->
+<theme>
+  <formatVersion>7</formatVersion>
+
+  <!-- System carousel / selection screen -->
+  <view name="system">
+    <carousel name="systemcarousel">
+      <color>121212FF</color>
+    </carousel>
+    <text name="systemInfo">
+      <color>9aa0a6FF</color>
+      <backgroundColor>1a1a1aFF</backgroundColor>
+    </text>
+    <helpsystem name="help">
+      <textColor>9aa0a6FF</textColor>
+      <iconColor>1f6febFF</iconColor>
+    </helpsystem>
+  </view>
+
+  <!-- Game lists -->
+  <view name="basic, detailed, grid, video">
+    <textlist name="gamelist">
+      <selectorColor>1f6febFF</selectorColor>
+      <selectedColor>ffffffFF</selectedColor>
+      <primaryColor>e8eaedFF</primaryColor>
+      <secondaryColor>9aa0a6FF</secondaryColor>
+    </textlist>
+    <text name="logoText">
+      <color>ffffffFF</color>
+    </text>
+    <text name="md_lbl_rating, md_lbl_releasedate, md_lbl_developer, md_lbl_publisher, md_lbl_genre, md_lbl_players, md_lbl_lastplayed, md_lbl_playcount">
+      <color>9aa0a6FF</color>
+    </text>
+    <text name="md_developer, md_publisher, md_genre, md_players, md_description">
+      <color>e8eaedFF</color>
+    </text>
+    <helpsystem name="help">
+      <textColor>9aa0a6FF</textColor>
+      <iconColor>1f6febFF</iconColor>
+    </helpsystem>
+  </view>
+</theme>
