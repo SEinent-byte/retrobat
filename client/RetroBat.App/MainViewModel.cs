@@ -110,7 +110,7 @@ public sealed class MainViewModel : ViewModelBase
         try
         {
             SyncInfo = "Syncing library into RetroBat…";
-            var n = await _sync.SyncAsync(state, UserEmail).ConfigureAwait(true);
+            var n = await _sync.SyncAsync(state, _session.Email).ConfigureAwait(true);
             SyncInfo = $"{n} game(s) available in RetroBat. Launch RetroBat to play.";
         }
         catch (Exception ex)

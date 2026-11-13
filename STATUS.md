@@ -126,9 +126,11 @@ _Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.
 - `AccountStatusText` (Spanish, end-user facing). No backend/contract change.
 - Verified live on this machine: WPF login → sync wrote entry (nes/gamelist.xml + `_mi_cuenta.nes`); proxy invoked with account rom opened the menu, exit 0, no RetroArch.
 - Proxy on this machine REINSTALLED with this build.
-- TODO polish (optional): fixed `<image>` for the entry; dedup to one console instead of every console.
+- Polish DONE: SVG avatar `<image>` per entry; email persisted (DPAPI) so the entry/menu show it on resumed sessions (`SessionManager.Email` + `TokenStore.SaveEmail`).
+- TODO polish (optional, not done): dedup to one console instead of every console.
+- NOTE: email only appears after the NEXT login (pre-existing persisted session had no stored email).
 
-## Admin ROM upload: DONE (commit `5dc7ef9`, shared 0.3.0). DEPLOY PENDING.
+## Admin ROM upload: DONE + DEPLOYED (commit `5dc7ef9`, shared 0.3.0, prod Version `c197a131`).
 - `POST /admin/games/:id/rom` (admin-gated): raw body → `env.ROMS.put(r2Key)`, updates `size_bytes`, audit `upload_rom`. Returns `{gameId, romFilename, sizeBytes, etag}`.
 - Panel: "Upload ROM" form (prefilled with just-created game id).
 - Smoke-tested on `wrangler dev --local`: create game → upload 30B NES → size_bytes=30, etag returned. Verified, then cleaned up.

@@ -20,9 +20,14 @@ public sealed class SessionManager(
 {
     private Session? _session;
     private DeviceIdentity? _device;
+    private string? _email;
 
     public DeviceIdentity Device => _device ??= DeviceFingerprintProvider.Collect();
     public bool IsSignedIn => _session is not null;
+
+    /// <summary>Signed-in user's email, cached or loaded from the token store.
+    /// Null when signed out or unknown.</summary>
+    public string? Email => _email ??= store.TryLoadEmail();
 
     /// <summary>Last local-clock anti-tamper check (SPEC §6), updated on each
     /// license status fetch.</summary>
@@ -44,6 +49,8 @@ public sealed class SessionManager(
                 auth.Code, auth.CodeVerifier, auth.RedirectUri, Device),
             ct).ConfigureAwait(false);
         SetSession(res.Session);
+        _email = res.User.Email;
+        store.SaveEmail(res.User.Email);
         return res.User;
     }
 
@@ -62,6 +69,7 @@ public sealed class SessionManager(
             }
         }
         _session = null;
+        _email = null;
         store.Clear();
     }
 

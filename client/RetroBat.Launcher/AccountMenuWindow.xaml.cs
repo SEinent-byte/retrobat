@@ -18,7 +18,6 @@ public partial class AccountMenuWindow : Window
 {
     private readonly SessionManager _session;
     private readonly CatalogSync _sync;
-    private string? _email;
 
     public AccountMenuWindow(SessionManager session, CatalogSync sync)
     {
@@ -31,8 +30,7 @@ public partial class AccountMenuWindow : Window
     private async void OnSignIn(object sender, RoutedEventArgs e) =>
         await Guarded(async () =>
         {
-            var user = await _session.SignInAsync().ConfigureAwait(true);
-            _email = user.Email;
+            await _session.SignInAsync().ConfigureAwait(true);
             await RefreshAsync().ConfigureAwait(true);
         }).ConfigureAwait(true);
 
@@ -47,7 +45,6 @@ public partial class AccountMenuWindow : Window
         await Guarded(async () =>
         {
             await _session.SignOutAsync().ConfigureAwait(true);
-            _email = null;
             await RefreshAsync().ConfigureAwait(true);
         }).ConfigureAwait(true);
 
@@ -73,7 +70,7 @@ public partial class AccountMenuWindow : Window
             }
         }
 
-        StatusText.Text = AccountStatusText.Full(state, _email);
+        StatusText.Text = AccountStatusText.Full(state, _session.Email);
         var signedIn = _session.IsSignedIn && state is not null;
         SignInButton.Visibility = signedIn ? Visibility.Collapsed : Visibility.Visible;
         SignOutButton.IsEnabled = signedIn;
@@ -83,7 +80,7 @@ public partial class AccountMenuWindow : Window
         {
             try
             {
-                await _sync.SyncAsync(state, _email).ConfigureAwait(true);
+                await _sync.SyncAsync(state, _session.Email).ConfigureAwait(true);
             }
             catch
             {

@@ -27,6 +27,18 @@ public sealed class CatalogSync(ApiClient api, SessionManager session, RetrobatP
     /// Leading underscore keeps it first in the console's game list.</summary>
     private const string AccountFileBase = "_mi_cuenta";
 
+    /// <summary>Artwork filename for the account entry (EmulationStation renders
+    /// SVG via nanosvg).</summary>
+    private const string AccountImageFile = "_mi_cuenta.svg";
+
+    /// <summary>Simple user-avatar icon shown for the "Mi Cuenta" entry.</summary>
+    private const string AccountImageSvg =
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"256\" height=\"256\" viewBox=\"0 0 256 256\">" +
+        "<rect width=\"256\" height=\"256\" rx=\"32\" fill=\"#1f6feb\"/>" +
+        "<circle cx=\"128\" cy=\"100\" r=\"44\" fill=\"#ffffff\"/>" +
+        "<path d=\"M48 216c0-44 36-72 80-72s80 28 80 72z\" fill=\"#ffffff\"/>" +
+        "</svg>";
+
     /// <summary>Fetch the catalog and materialize stubs + gamelists. Returns the
     /// number of game entries written. <paramref name="status"/> is the current
     /// license state used for the "Mi Cuenta" entry; when null it is fetched.</summary>
@@ -141,6 +153,7 @@ public sealed class CatalogSync(ApiClient api, SessionManager session, RetrobatP
             ext = ".zip";
         var fileName = AccountFileBase + ext;
         File.WriteAllText(Path.Combine(dir, fileName), AccountPrefix, Encoding.ASCII);
+        File.WriteAllText(Path.Combine(dir, AccountImageFile), AccountImageSvg, Encoding.UTF8);
         return fileName;
     }
 
@@ -158,7 +171,8 @@ public sealed class CatalogSync(ApiClient api, SessionManager session, RetrobatP
             "game",
             new XElement("path", "./" + accountFile),
             new XElement("name", "Mi Cuenta — " + accountShort),
-            new XElement("desc", accountDesc)));
+            new XElement("desc", accountDesc),
+            new XElement("image", "./" + AccountImageFile)));
 
         foreach (var g in games)
         {

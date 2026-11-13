@@ -16,6 +16,7 @@ public sealed class TokenStore
 {
     private const string KeyPath = @"Software\RetroBat";
     private const string SessionValue = "session";
+    private const string EmailValue = "email";
     private static readonly byte[] Entropy =
         Encoding.UTF8.GetBytes("RetroBat.session.v1");
 
@@ -48,9 +49,39 @@ public sealed class TokenStore
         }
     }
 
+    /// <summary>Persist the signed-in user's email (DPAPI-protected) so the
+    /// in-RetroBat account entry can show it on a resumed session.</summary>
+    public void SaveEmail(string email)
+    {
+        var sealedBytes = ProtectedData.Protect(
+            Encoding.UTF8.GetBytes(email), Entropy, DataProtectionScope.CurrentUser);
+        using var key = Registry.CurrentUser.CreateSubKey(KeyPath);
+        key.SetValue(EmailValue, Convert.ToBase64String(sealedBytes),
+            RegistryValueKind.String);
+    }
+
+    public string? TryLoadEmail()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(KeyPath);
+            if (key?.GetValue(EmailValue) is not string b64)
+                return null;
+            var unsealed = ProtectedData.Unprotect(
+                Convert.FromBase64String(b64), Entropy,
+                DataProtectionScope.CurrentUser);
+            return Encoding.UTF8.GetString(unsealed);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public void Clear()
     {
         using var key = Registry.CurrentUser.OpenSubKey(KeyPath, writable: true);
         key?.DeleteValue(SessionValue, throwOnMissingValue: false);
+        key?.DeleteValue(EmailValue, throwOnMissingValue: false);
     }
 }
