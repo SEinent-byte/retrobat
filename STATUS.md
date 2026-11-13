@@ -22,11 +22,11 @@ _Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.
 | ES-native integration (sync + proxy) | 90 (real-ROM emulation untested) |
 | Billing (step 9) | 0 — BLOCKED on provider |
 | Domain (step 10) | 0 — user |
-| Admin ROM upload to R2 + distribution installer/auto-update | ~10 |
+| Admin ROM upload to R2 (DONE, deploy pending) + distribution installer/auto-update | ~40 |
 
 **Next session should tackle (in order):**
-1. Admin login web-client (user action) → then test panel live.
-2. Admin ROM **upload** endpoint (`POST /admin/games/:id/rom` → R2) + panel upload UI. (Today admin only registers the row; ROM is uploaded out-of-band.)
+1. **Deploy Worker to prod** (`cd backend && npx wrangler deploy`) — ROM-upload endpoint committed on `main` but NOT yet deployed (classifier blocked the deploy; user runs it).
+2. Admin login web-client (user action) → then test panel live (incl. ROM upload UI).
 3. Step 9 billing once provider chosen (Stripe recommended): `/billing/checkout` + `/billing/webhook` + subscriptions.
 4. Step 10 domain + Google redirect update.
 5. Distribution: single installer bundling .NET runtime + proxy install + auto-update.
@@ -119,6 +119,13 @@ _Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.
 - Install/uninstall: `client/scripts/install-launcher.ps1` / `uninstall-launcher.ps1`. **Proxy INSTALLED on this machine** (original backed up).
 - Verified: isolated wrapper run downloaded real ROM over stub (43->528B, NES header); sync wrote gamelist+preserved ROM; play start/end hit prod.
 - `.NET` note: proxy published framework-dependent single-file (needs .NET 8 Desktop runtime on target).
+
+## Admin ROM upload: DONE (commit `5dc7ef9`, shared 0.3.0). DEPLOY PENDING.
+- `POST /admin/games/:id/rom` (admin-gated): raw body → `env.ROMS.put(r2Key)`, updates `size_bytes`, audit `upload_rom`. Returns `{gameId, romFilename, sizeBytes, etag}`.
+- Panel: "Upload ROM" form (prefilled with just-created game id).
+- Smoke-tested on `wrangler dev --local`: create game → upload 30B NES → size_bytes=30, etag returned. Verified, then cleaned up.
+- `API_VERSION` 0.2.0 → 0.3.0 (minor; MAJOR unchanged, no client break). WPF client still sends 0.2.0 — fine (backend rejects MAJOR mismatch only).
+- **Not deployed:** run `cd backend && npx wrangler deploy` to push to prod Worker.
 
 ## NEXT: step 9 (billing) BLOCKED — payment provider TBD (SPEC §12). Step 10 (domain) — user.
 
