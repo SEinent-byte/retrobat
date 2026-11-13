@@ -402,6 +402,8 @@ trial_eligible = 1
 
 Fase previa a cualquier código de funcionalidad. Objetivo: dejar el entorno listo para que Claude trabaje rápido y en paralelo, con interacción del usuario solo en puntos muy concretos (logins, aprobaciones, pegar tokens).
 
+> **Estado Fase 0 (2026-11-13): COMPLETA (infra).** Repo git privado + push ✓ · D1 `retrobat-db` ✓ · R2 bucket `retrobat-roms` ✓ · Pages `retrobat-admin` ✓ · Google OAuth Desktop client ✓ · secrets locales en `backend/.dev.vars` ✓. Cuenta Cloudflare: `anthoniogarciareyes25@gmail.com` (id `2263e816c670f9c372ddd4db453bc458`). **Bloqueador pendiente:** disco C: lleno (liberar antes de `pnpm install` / builds .NET). Detalle operativo y siguiente paso en `STATUS.md`. Siguiente = §14 paso 1 (congelar contratos `/shared`).
+
 ### 13.0.1 Repositorio y control de versiones
 
 - `git init`; crear repo **privado** en GitHub y push inicial.
