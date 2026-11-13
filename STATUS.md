@@ -137,6 +137,12 @@ _Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.
 - `API_VERSION` 0.2.0 → 0.3.0 (minor; MAJOR unchanged, no client break). WPF client still sends 0.2.0 — fine (backend rejects MAJOR mismatch only).
 - **Not deployed:** run `cd backend && npx wrangler deploy` to push to prod Worker.
 
+## Distribution (step 5): LICENSE-GATED. Bundle of RetroBat REJECTED.
+- RetroBat content = CC BY-NC-SA 4.0 (NonCommercial): cannot bundle/sell in this paid product. Official terms forbid commercial use + selling pre-installed + shipping copyrighted content.
+- CLEAN PATH: ES engine is permissive — batocera-emulationstation = MIT, ES-DE = MIT, RetroArch = GPLv3 (commercial OK w/ source offer). Build OUR OWN Windows frontend from MIT/GPL upstreams under our branding, no RetroBat NC assets, no BIOS. Proxy already speaks batocera `emulatorLauncher.exe -rom` → low port effort.
+- Options: (A) own distro from batocera-ES MIT [high effort, recommended for commercial], (B) ES-DE MIT [medium, no emulator auto-download], (C) add-on over user's RetroBat [low, NC gray-area → internal/MVP only].
+- Decision PENDING user. See memory `retrobat-licensing-distribution`.
+
 ## NEXT: step 9 (billing) BLOCKED — payment provider TBD (SPEC §12). Step 10 (domain) — user.
 
 ## Pending USER
