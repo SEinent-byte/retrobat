@@ -19,3 +19,25 @@ public sealed record AuthLogoutRequest(string RefreshToken);
 public sealed record ActivateTrialRequest(DeviceIdentity Device);
 
 public sealed record ActivateTrialResponse(LicenseStatus Status, long ExpiresAt);
+
+public sealed record CatalogResponse(
+    IReadOnlyList<SystemDto> Systems,
+    IReadOnlyList<GameDto> Games);
+
+public sealed record DownloadUrlRequest(string GameId);
+
+public sealed record DownloadUrlResponse(
+    string Url,
+    long ExpiresAt,
+    string RomFilename,
+    long SizeBytes,
+    string? Sha256,
+    string RetrobatFolder,
+    string? DefaultCore);
+
+public sealed record PlayEventRequest(
+    string GameId,
+    PlayAction Action,
+    int? DurationSec);
+
+public sealed record PlayEventResponse(bool Ok, string EventId);

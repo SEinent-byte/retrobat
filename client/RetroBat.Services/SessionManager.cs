@@ -79,6 +79,13 @@ public sealed class SessionManager(
     public Task<ActivateTrialResponse> ActivateTrialAsync(CancellationToken ct = default) =>
         WithValidSession((token) => api.ActivateTrialAsync(token, Device, ct), ct);
 
+    /// <summary>Run an authorized API call with the current session token,
+    /// refreshing once on Unauthorized. For callers outside this class
+    /// (e.g. the game library).</summary>
+    public Task<T> AuthorizedAsync<T>(
+        Func<string, Task<T>> call, CancellationToken ct = default) =>
+        WithValidSession(call, ct);
+
     private void SetSession(Session s)
     {
         _session = s;

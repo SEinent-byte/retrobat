@@ -45,6 +45,20 @@ public sealed class ApiClient
             "/license/activate-trial", new ActivateTrialRequest(device),
             sessionToken, ct);
 
+    public Task<CatalogResponse> GetCatalogAsync(
+        string sessionToken, CancellationToken ct = default) =>
+        GetAsync<CatalogResponse>("/catalog", sessionToken, ct);
+
+    public Task<DownloadUrlResponse> GetDownloadUrlAsync(
+        string sessionToken, string gameId, CancellationToken ct = default) =>
+        PostAsync<DownloadUrlRequest, DownloadUrlResponse>(
+            "/download/url", new DownloadUrlRequest(gameId), sessionToken, ct);
+
+    public Task<PlayEventResponse> PostPlayEventAsync(
+        string sessionToken, PlayEventRequest body, CancellationToken ct = default) =>
+        PostAsync<PlayEventRequest, PlayEventResponse>(
+            "/play/event", body, sessionToken, ct);
+
     /* --------------------------- transport --------------------------- */
 
     private async Task<TRes> GetAsync<TRes>(

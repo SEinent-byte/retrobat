@@ -3,6 +3,7 @@ using RetroBat.Core.Security;
 using RetroBat.Services;
 using RetroBat.Services.Api;
 using RetroBat.Services.Auth;
+using RetroBat.Services.Games;
 
 namespace RetroBat.App;
 
@@ -20,7 +21,14 @@ public partial class App : Application
         var oauth = new GoogleOAuthFlow(config);
         var clock = new ClockGuard();
         var session = new SessionManager(api, store, oauth, clock);
-        var vm = new MainViewModel(session);
+
+        var paths = new RetrobatPaths();
+        var games = new GameService(
+            api, session, paths,
+            new Aria2DownloadManager(paths),
+            new EmulatorLauncher(paths));
+
+        var vm = new MainViewModel(session, games);
 
         var window = new MainWindow { DataContext = vm };
         window.Show();

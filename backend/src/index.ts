@@ -6,6 +6,7 @@ import { ApiException, fail } from "./lib/http.js";
 import { authRoutes } from "./routes/auth.js";
 import { catalogRoutes, downloadRoutes } from "./routes/catalog.js";
 import { licenseRoutes } from "./routes/license.js";
+import { playRoutes } from "./routes/play.js";
 
 const app = new Hono<AppBindings>();
 
@@ -15,6 +16,7 @@ app.route("/auth", authRoutes);
 app.route("/license", licenseRoutes);
 app.route("/catalog", catalogRoutes);
 app.route("/download", downloadRoutes);
+app.route("/play", playRoutes);
 
 app.notFound(() => {
   throw fail.notFound("no such route");

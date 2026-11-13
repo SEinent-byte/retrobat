@@ -34,3 +34,25 @@ public sealed record LicenseState(
     long? CurrentPeriodEnd,
     long ServerTime,
     AbuseState AbuseState);
+
+/// <summary>A console/system (SPEC §7.1). Extensions are the allowed ROM
+/// extensions for this system.</summary>
+public sealed record SystemDto(
+    string Id,
+    string Name,
+    string RetrobatFolder,
+    string? DefaultCore,
+    IReadOnlyList<string> Extensions,
+    int SortOrder);
+
+/// <summary>A catalog game. r2Key is never exposed; downloads go through a
+/// presigned URL.</summary>
+public sealed record GameDto(
+    string Id,
+    string SystemId,
+    string Title,
+    string RomFilename,
+    long SizeBytes,
+    bool TrialEligible,
+    long? FreeFrom,
+    long? FreeUntil);

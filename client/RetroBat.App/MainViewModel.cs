@@ -1,10 +1,21 @@
+using System.Collections.ObjectModel;
 using RetroBat.App.Mvvm;
 using RetroBat.Core.Contracts;
 using RetroBat.Core.Security;
 using RetroBat.Services;
 using RetroBat.Services.Api;
+using RetroBat.Services.Games;
 
 namespace RetroBat.App;
+
+/// <summary>A catalog row: the game plus its resolved system, for display and
+/// launch.</summary>
+public sealed record GameRow(GameDto Game, SystemDto System)
+{
+    public string Title => Game.Title;
+    public string SystemName => System.Name;
+    public bool TrialEligible => Game.TrialEligible;
+}
 
 /// <summary>Drives the main window: sign-in, license status, trial start.
 /// All access decisions come from the server (SPEC §2); this only displays
@@ -12,31 +23,46 @@ namespace RetroBat.App;
 public sealed class MainViewModel : ViewModelBase
 {
     private readonly SessionManager _session;
+    private readonly GameService _games;
 
     private string _statusText = "Not signed in.";
     private string? _userEmail;
     private bool _isSignedIn;
     private bool _canStartTrial;
     private bool _isBusy;
+    private GameRow? _selectedGame;
+    private double _downloadProgress;
 
-    public MainViewModel(SessionManager session)
+    public MainViewModel(SessionManager session, GameService games)
     {
         _session = session;
+        _games = games;
 
         SignInCommand = new AsyncRelayCommand(SignInAsync, () => !IsSignedIn, OnError);
         RefreshCommand = new AsyncRelayCommand(RefreshStatusAsync, () => IsSignedIn, OnError);
         StartTrialCommand = new AsyncRelayCommand(StartTrialAsync, () => CanStartTrial, OnError);
         SignOutCommand = new AsyncRelayCommand(SignOutAsync, () => IsSignedIn, OnError);
+        PlayCommand = new AsyncRelayCommand(PlayAsync, () => SelectedGame is not null, OnError);
     }
 
     public AsyncRelayCommand SignInCommand { get; }
     public AsyncRelayCommand RefreshCommand { get; }
     public AsyncRelayCommand StartTrialCommand { get; }
     public AsyncRelayCommand SignOutCommand { get; }
+    public AsyncRelayCommand PlayCommand { get; }
+
+    public ObservableCollection<GameRow> Games { get; } = new();
 
     public string StatusText { get => _statusText; private set => Set(ref _statusText, value); }
     public string? UserEmail { get => _userEmail; private set => Set(ref _userEmail, value); }
     public bool IsBusy { get => _isBusy; private set => Set(ref _isBusy, value); }
+    public double DownloadProgress { get => _downloadProgress; private set => Set(ref _downloadProgress, value); }
+
+    public GameRow? SelectedGame
+    {
+        get => _selectedGame;
+        set { if (Set(ref _selectedGame, value)) PlayCommand.RaiseCanExecuteChanged(); }
+    }
 
     public bool IsSignedIn
     {
@@ -80,7 +106,37 @@ public sealed class MainViewModel : ViewModelBase
                 text += "\n⚠ System clock set back — time is verified online.";
             StatusText = text;
             CanStartTrial = state.Status == LicenseStatus.None;
+            await LoadCatalogAsync().ConfigureAwait(true);
         });
+
+    private async Task LoadCatalogAsync()
+    {
+        var catalog = await _games.GetCatalogAsync().ConfigureAwait(true);
+        var systems = catalog.Systems.ToDictionary(s => s.Id);
+        Games.Clear();
+        foreach (var g in catalog.Games)
+        {
+            if (systems.TryGetValue(g.SystemId, out var sys))
+                Games.Add(new GameRow(g, sys));
+        }
+    }
+
+    private Task PlayAsync()
+    {
+        var row = SelectedGame;
+        if (row is null)
+            return Task.CompletedTask;
+
+        return RunBusy($"Preparing {row.Title}…", async () =>
+        {
+            DownloadProgress = 0;
+            var progress = new Progress<double>(p => DownloadProgress = p);
+            StatusText = $"Downloading {row.Title}…";
+            await _games.PlayAsync(row.Game, progress).ConfigureAwait(true);
+            StatusText = $"Finished playing {row.Title}.";
+            await RefreshStatusAsync().ConfigureAwait(true);
+        });
+    }
 
     private Task StartTrialAsync() =>
         RunBusy("Starting trial…", async () =>
@@ -95,6 +151,8 @@ public sealed class MainViewModel : ViewModelBase
         IsSignedIn = false;
         CanStartTrial = false;
         UserEmail = null;
+        Games.Clear();
+        SelectedGame = null;
         StatusText = "Not signed in.";
     }
 
@@ -118,6 +176,7 @@ public sealed class MainViewModel : ViewModelBase
         RefreshCommand.RaiseCanExecuteChanged();
         StartTrialCommand.RaiseCanExecuteChanged();
         SignOutCommand.RaiseCanExecuteChanged();
+        PlayCommand.RaiseCanExecuteChanged();
     }
 
     private void OnError(Exception ex)

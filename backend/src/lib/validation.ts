@@ -43,3 +43,10 @@ export const activateTrialSchema = z.object({
 export const downloadUrlSchema = z.object({
   gameId: z.string().min(1),
 });
+
+export const playEventSchema = z.object({
+  gameId: z.string().min(1),
+  action: z.enum(["start", "end"]),
+  // nullish: client may send the key as null when it has no duration.
+  durationSec: z.number().int().nonnegative().nullish(),
+});
