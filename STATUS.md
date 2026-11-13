@@ -120,6 +120,14 @@ _Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.
 - Verified: isolated wrapper run downloaded real ROM over stub (43->528B, NES header); sync wrote gamelist+preserved ROM; play start/end hit prod.
 - `.NET` note: proxy published framework-dependent single-file (needs .NET 8 Desktop runtime on target).
 
+## ES-native "Mi Cuenta" entry: DONE + validated (commit `0c1ca62`, client-only).
+- `CatalogSync` writes `_mi_cuenta.<ext>` (`RBACCT:` marker, reuses console extension) as first entry of each synced console; name = live status `Mi Cuenta — Prueba: Xd Yh`, desc = email + status.
+- Launch proxy detects `RBACCT:` → opens `AccountMenuWindow` (Google sign-in / activate trial / sign out) instead of a game, then re-syncs.
+- `AccountStatusText` (Spanish, end-user facing). No backend/contract change.
+- Verified live on this machine: WPF login → sync wrote entry (nes/gamelist.xml + `_mi_cuenta.nes`); proxy invoked with account rom opened the menu, exit 0, no RetroArch.
+- Proxy on this machine REINSTALLED with this build.
+- TODO polish (optional): fixed `<image>` for the entry; dedup to one console instead of every console.
+
 ## Admin ROM upload: DONE (commit `5dc7ef9`, shared 0.3.0). DEPLOY PENDING.
 - `POST /admin/games/:id/rom` (admin-gated): raw body → `env.ROMS.put(r2Key)`, updates `size_bytes`, audit `upload_rom`. Returns `{gameId, romFilename, sizeBytes, etag}`.
 - Panel: "Upload ROM" form (prefilled with just-created game id).
