@@ -7,6 +7,33 @@
 import type { AbuseState, LicenseStatus } from "./enums.js";
 import type { EpochMs, GameDto, SystemDto } from "./models.js";
 
+/* ------------------------- admin auth (§10) ------------------------- */
+
+/**
+ * POST /admin/auth/google — public. The admin panel signs in with Google
+ * (Google Identity Services) and posts the resulting id_token. The server
+ * verifies it and issues an admin session only if the email is in `admins`.
+ */
+export interface AdminAuthRequest {
+  /** Google id_token from GIS (audience = the admin web client id). */
+  idToken: string;
+}
+
+export interface AdminSession {
+  adminToken: string;
+  expiresAt: EpochMs;
+}
+
+export interface AdminIdentity {
+  id: string;
+  email: string;
+}
+
+export interface AdminAuthResponse {
+  session: AdminSession;
+  admin: AdminIdentity;
+}
+
 /* ----------------------------- users ----------------------------- */
 
 /** One row in the admin user list. */

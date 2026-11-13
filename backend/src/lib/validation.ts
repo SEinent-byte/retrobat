@@ -50,3 +50,45 @@ export const playEventSchema = z.object({
   // nullish: client may send the key as null when it has no duration.
   durationSec: z.number().int().nonnegative().nullish(),
 });
+
+/* ------------------------------ admin ------------------------------ */
+
+export const adminAuthSchema = z.object({
+  idToken: z.string().min(1),
+});
+
+export const grantTimeSchema = z
+  .object({
+    setTrialExpiresAt: z.number().int().positive().optional(),
+    extendTrialMs: z.number().int().optional(),
+    reason: z.string().max(500).optional(),
+  })
+  .refine((v) => v.setTrialExpiresAt != null || v.extendTrialMs != null, {
+    message: "setTrialExpiresAt or extendTrialMs required",
+  });
+
+export const upsertSystemSchema = z.object({
+  id: z.string().min(1).optional(),
+  name: z.string().min(1),
+  retrobatFolder: z.string().min(1),
+  defaultCore: z.string().min(1).nullable(),
+  extensions: z.array(z.string().min(1)).min(1),
+  sortOrder: z.number().int().nonnegative(),
+});
+
+export const createGameSchema = z.object({
+  systemId: z.string().min(1),
+  title: z.string().min(1),
+  romFilename: z.string().min(1),
+  sizeBytes: z.number().int().nonnegative(),
+  trialEligible: z.boolean(),
+});
+
+export const freeWindowSchema = z.object({
+  freeFrom: z.number().int().positive().nullable(),
+  freeUntil: z.number().int().positive().nullable(),
+});
+
+export const promoteAdminSchema = z.object({
+  email: z.string().email(),
+});

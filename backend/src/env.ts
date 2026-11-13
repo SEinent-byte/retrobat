@@ -8,6 +8,8 @@ export interface Env {
   /* secrets (wrangler secret put / .dev.vars) */
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
+  /** Google WEB OAuth client id for the admin panel (GIS). */
+  ADMIN_GOOGLE_CLIENT_ID: string;
   JWT_SECRET: string;
   R2_ACCESS_KEY_ID: string;
   R2_SECRET_ACCESS_KEY: string;
@@ -22,5 +24,8 @@ export interface AppBindings {
   Variables: {
     /** Authenticated user id, set by the session middleware. */
     userId: string;
+    /** Authenticated admin, set by the admin middleware. */
+    adminId: string;
+    adminEmail: string;
   };
 }

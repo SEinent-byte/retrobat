@@ -7,7 +7,9 @@
     "types": ["@cloudflare/workers-types"],
     "strict": true,
     "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
+    // Disabled: zod .optional() infers `T | undefined`, which clashes with the
+    // shared contracts' `prop?: T` under exactOptionalPropertyTypes.
+    "exactOptionalPropertyTypes": false,
     "noEmit": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,

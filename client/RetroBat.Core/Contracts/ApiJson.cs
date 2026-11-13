@@ -8,7 +8,7 @@ namespace RetroBat.Core.Contracts;
 public static class ApiJson
 {
     /// <summary>Must equal @retrobat/shared API_VERSION.</summary>
-    public const string ApiVersion = "0.1.0";
+    public const string ApiVersion = "0.2.0";
 
     /// <summary>Header carrying <see cref="ApiVersion"/>.</summary>
     public const string ApiVersionHeader = "X-Api-Version";

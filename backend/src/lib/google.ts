@@ -50,9 +50,21 @@ export async function exchangeCode(opts: {
   const json = (await res.json()) as { id_token?: string };
   if (!json.id_token) throw fail.authExchangeFailed("no id_token in response");
 
-  const { payload } = await jwtVerify(json.id_token, jwks, {
+  return verifyIdToken(json.id_token, opts.clientId);
+}
+
+/**
+ * Verify a Google id_token signature, issuer and audience, and return the
+ * identity. Used by the desktop code exchange and by the admin panel
+ * (Google Identity Services) login.
+ */
+export async function verifyIdToken(
+  idToken: string,
+  audience: string,
+): Promise<GoogleIdentity> {
+  const { payload } = await jwtVerify(idToken, jwks, {
     issuer: ISSUERS,
-    audience: opts.clientId,
+    audience,
   }).catch(() => {
     throw fail.authExchangeFailed("id_token verification failed");
   });
