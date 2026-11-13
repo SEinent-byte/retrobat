@@ -48,11 +48,15 @@ _Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.
 - Remote D1 migrated (`0000` applied, 22 commands).
 - **.NET 8 SDK installed**: 8.0.428 at `C:\Program Files\dotnet`. New shells get it on PATH (winget machine PATH); this bash session may still miss it — call full path if needed.
 
-## NEXT — §14 step 3 (client WPF .NET 8)
-- Scope `/client`: Google OAuth loopback+PKCE, device fingerprint, show license status against prod API.
-- Backend step 4 (anti-farm) folded into step 2; step 5 (clock anti-tamper) is client-side.
-- Local backend run: `cd backend && pnpm dev` (`backend/.dev.vars`). Local D1 migrated.
+## §14 step 3: DONE — client WPF login + fingerprint + status (commit `757249b`).
+- .NET 8 WPF, 3 projects (SPEC §2.1): RetroBat.Core / .Services / .App. `dotnet build` green, 0 warnings.
+- Core: C# mirror of shared contracts, DeviceFingerprintProvider (MachineGuid+WMI, SHA-256), PKCE S256.
+- Services: GoogleOAuthFlow (loopback+PKCE), ApiClient (X-Api-Version, typed errors), TokenStore (DPAPI), SessionManager (auto-refresh on 401).
+- App points at prod Worker by default (`ClientConfig.Default`).
+- Build client: `cd client && "C:\Program Files\dotnet\dotnet.exe" build RetroBat.sln`. Run: `... run --project RetroBat.App`.
+- Step 4 (anti-farm) folded into step 2. Step 5 (clock anti-tamper, client) and step 6 (backend catalog/systems/download) are next, both autonomous.
 
-## Pending USER decision
-- [ ] **First admin email** to seed into remote `admins` (owner). Pedro vs Anthonio — awaiting choice, then seeded via one `wrangler d1 execute --remote`.
+## Pending USER (not blocking autonomous work)
+- [ ] **Test interactive Google sign-in** (needs your Google account + browser): run the App, click "Sign in with Google". Reports any OAuth redirect issue.
+- [ ] **First admin email** to seed into remote `admins` (owner). Pedro vs Anthonio — awaiting choice; seeded via one `wrangler d1 execute --remote` when decided (needed for step 8 admin panel, not before).
 - [ ] (Optional) Rotate GitHub PAT, then re-store via the `git credential approve` one-liner above.
