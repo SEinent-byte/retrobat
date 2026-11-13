@@ -43,7 +43,7 @@ public partial class App : Application
 
     private async Task<int> RunAsync(string[] args)
     {
-        var baseDir = AppContext.BaseDirectory;
+        var baseDir = RetrobatPaths.AppBaseDir();
         var paths = new RetrobatPaths();
 
         var romPath = ArgValue(args, "-rom");

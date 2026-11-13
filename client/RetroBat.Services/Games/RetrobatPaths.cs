@@ -12,7 +12,20 @@ public sealed class RetrobatPaths
 
     public RetrobatPaths(string? rootOverride = null)
     {
-        RootDir = rootOverride ?? FindRoot(AppContext.BaseDirectory);
+        RootDir = rootOverride ?? FindRoot(AppBaseDir());
+    }
+
+    /// <summary>
+    /// Directory of the running executable. Uses <see cref="Environment.ProcessPath"/>
+    /// so it stays correct for single-file self-contained builds, whose
+    /// <see cref="AppContext.BaseDirectory"/> points at a temp extraction dir.
+    /// </summary>
+    public static string AppBaseDir()
+    {
+        var exe = Environment.ProcessPath;
+        return !string.IsNullOrEmpty(exe)
+            ? Path.GetDirectoryName(exe)!
+            : AppContext.BaseDirectory;
     }
 
     public string RomsDir(string retrobatFolder) =>
@@ -39,7 +52,9 @@ public sealed class RetrobatPaths
         while (dir is not null)
         {
             if (File.Exists(Path.Combine(dir.FullName, "RetroBat.exe")) ||
-                Directory.Exists(Path.Combine(dir.FullName, "emulationstation")))
+                Directory.Exists(Path.Combine(dir.FullName, "emulationstation")) ||
+                // Standalone (distro) layout: ES binary sits at the root.
+                File.Exists(Path.Combine(dir.FullName, "emulationstation.exe")))
                 return dir.FullName;
             dir = dir.Parent;
         }
