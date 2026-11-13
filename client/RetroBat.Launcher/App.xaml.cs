@@ -44,14 +44,10 @@ public partial class App : Application
     private async Task<int> RunAsync(string[] args)
     {
         var baseDir = AppContext.BaseDirectory;
-        var realLauncher = Path.Combine(baseDir, RealLauncherName);
-        if (!File.Exists(realLauncher))
-        {
-            Fatal($"{RealLauncherName} not found next to the launcher.");
-            return 1;
-        }
+        var paths = new RetrobatPaths();
 
         var romPath = ArgValue(args, "-rom");
+        var core = ArgValue(args, "-core");
         var gameId = romPath is not null && CatalogSync.IsStub(romPath)
             ? CatalogSync.ReadStubGameId(romPath)
             : null;
@@ -65,7 +61,7 @@ public partial class App : Application
         // "Mi Cuenta" entry: open the account menu instead of launching a game.
         if (romPath is not null && CatalogSync.IsAccount(romPath))
         {
-            var sync = new CatalogSync(api, session, new RetrobatPaths());
+            var sync = new CatalogSync(api, session, paths);
             new AccountMenuWindow(session, sync).ShowDialog();
             return 0;
         }
@@ -114,7 +110,8 @@ public partial class App : Application
         }
 
         var startedAt = DateTimeOffset.UtcNow;
-        var exitCode = await LaunchRealAsync(realLauncher, args).ConfigureAwait(true);
+        var exitCode = await LaunchGameAsync(paths, baseDir, core, romPath, args)
+            .ConfigureAwait(true);
 
         if (needDownload)
         {
@@ -136,6 +133,57 @@ public partial class App : Application
         SessionManager session, ApiClient api, string gameId, PlayAction action, int? dur) =>
         session.AuthorizedAsync((t) =>
             api.PostPlayEventAsync(t, new PlayEventRequest(gameId, action, dur)));
+
+    /// <summary>
+    /// Launch the game. Standalone (distro) mode runs RetroArch directly with
+    /// the system's core; if that is not available it falls back to a bundled
+    /// RetroBat launcher (emulatorLauncher_real.exe) for RetroBat-mode installs.
+    /// </summary>
+    private async Task<int> LaunchGameAsync(
+        RetrobatPaths paths, string baseDir, string? core, string? romPath, string[] args)
+    {
+        var retroArch = paths.RetroArchExe;
+        var corePath = core is not null
+            ? Path.Combine(paths.CoresDir, $"{core}_libretro.dll")
+            : null;
+
+        // Distro mode: RetroArch directly with the requested core.
+        if (romPath is not null && corePath is not null &&
+            File.Exists(retroArch) && File.Exists(corePath))
+        {
+            return await LaunchViaRetroArchAsync(retroArch, corePath, romPath)
+                .ConfigureAwait(true);
+        }
+
+        // Fallback: RetroBat's original launcher, if present.
+        var realLauncher = Path.Combine(baseDir, RealLauncherName);
+        if (File.Exists(realLauncher))
+            return await LaunchRealAsync(realLauncher, args).ConfigureAwait(true);
+
+        Fatal(
+            core is not null
+                ? $"Emulator core not found: {core}. Reinstall the app."
+                : $"{RealLauncherName} not found next to the launcher.");
+        return 1;
+    }
+
+    private static async Task<int> LaunchViaRetroArchAsync(
+        string retroArchExe, string corePath, string romPath)
+    {
+        var psi = new ProcessStartInfo(retroArchExe)
+        {
+            WorkingDirectory = Path.GetDirectoryName(retroArchExe)!,
+            UseShellExecute = false,
+        };
+        psi.ArgumentList.Add("-L");
+        psi.ArgumentList.Add(corePath);
+        psi.ArgumentList.Add(romPath);
+
+        using var proc = Process.Start(psi)
+            ?? throw new InvalidOperationException("failed to start RetroArch");
+        await proc.WaitForExitAsync().ConfigureAwait(true);
+        return proc.ExitCode;
+    }
 
     private static async Task<int> LaunchRealAsync(string realLauncher, string[] args)
     {

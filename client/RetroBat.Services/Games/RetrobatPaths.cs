@@ -21,6 +21,18 @@ public sealed class RetrobatPaths
     public string EmulatorLauncherExe =>
         Path.Combine(RootDir, "emulationstation", "emulatorLauncher.exe");
 
+    /// <summary>RetroArch executable bundled with the distribution.</summary>
+    public string RetroArchExe =>
+        Path.Combine(RootDir, "emulators", "retroarch", "retroarch.exe");
+
+    /// <summary>libretro cores directory.</summary>
+    public string CoresDir =>
+        Path.Combine(RootDir, "emulators", "retroarch", "cores");
+
+    /// <summary>EmulationStation home (holds es_systems.cfg, themes, settings).</summary>
+    public string EmulationStationHome =>
+        Path.Combine(RootDir, "emulationstation", ".emulationstation");
+
     private static string FindRoot(string start)
     {
         var dir = new DirectoryInfo(start);

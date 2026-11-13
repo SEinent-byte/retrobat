@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 using RetroBat.Core.Contracts;
@@ -76,7 +77,48 @@ public sealed class CatalogSync(ApiClient api, SessionManager session, RetrobatP
             WriteGameList(dir, games, acctFile, acctShort, acctDesc);
         }
 
+        WriteEsSystems(catalog.Systems);
+
         return catalog.Games.Count;
+    }
+
+    /// <summary>
+    /// Generate the standalone EmulationStation systems config from the catalog
+    /// (one &lt;system&gt; per console, each launching our launcher with the
+    /// system's default core). Written next to es_systems.cfg as a ".dist" file
+    /// so a RetroBat dev install is never clobbered; the packaged distribution
+    /// ships this as the sole es_systems.cfg.
+    /// </summary>
+    private void WriteEsSystems(IReadOnlyList<SystemDto> systems)
+    {
+        var home = paths.EmulationStationHome;
+        if (!Directory.Exists(home))
+            return;
+
+        var root = new XElement("systemList");
+        foreach (var s in systems)
+        {
+            var ext = string.Join(
+                " ",
+                s.Extensions.Select((e) => e.Trim()).Where((e) => e.Length > 0));
+            var coreArgs = string.IsNullOrEmpty(s.DefaultCore)
+                ? ""
+                : $" -core {s.DefaultCore}";
+            var command =
+                $"\"%HOME%\\emulatorLauncher.exe\" -system {s.Id}{coreArgs} -rom %ROM%";
+
+            root.Add(new XElement(
+                "system",
+                new XElement("name", s.Id),
+                new XElement("fullname", s.Name),
+                new XElement("path", $"~\\..\\roms\\{s.RetrobatFolder}"),
+                new XElement("extension", ext),
+                new XElement("command", command),
+                new XElement("platform", s.Id),
+                new XElement("theme", s.Id)));
+        }
+
+        new XDocument(root).Save(Path.Combine(home, "es_systems.cfg.dist"));
     }
 
     /// <summary>True when the file is the "Mi Cuenta" account pseudo-ROM.</summary>
