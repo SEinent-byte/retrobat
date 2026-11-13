@@ -102,15 +102,15 @@ public sealed class MainViewModel : ViewModelBase
         StatusText = text;
         CanStartTrial = state.Status == LicenseStatus.None;
 
-        await SyncCatalogAsync().ConfigureAwait(true);
+        await SyncCatalogAsync(state).ConfigureAwait(true);
     }
 
-    private async Task SyncCatalogAsync()
+    private async Task SyncCatalogAsync(LicenseState state)
     {
         try
         {
             SyncInfo = "Syncing library into RetroBat…";
-            var n = await _sync.SyncAsync().ConfigureAwait(true);
+            var n = await _sync.SyncAsync(state, UserEmail).ConfigureAwait(true);
             SyncInfo = $"{n} game(s) available in RetroBat. Launch RetroBat to play.";
         }
         catch (Exception ex)

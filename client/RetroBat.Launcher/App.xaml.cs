@@ -62,6 +62,14 @@ public partial class App : Application
         var session = new SessionManager(
             api, new TokenStore(), new GoogleOAuthFlow(config), new ClockGuard());
 
+        // "Mi Cuenta" entry: open the account menu instead of launching a game.
+        if (romPath is not null && CatalogSync.IsAccount(romPath))
+        {
+            var sync = new CatalogSync(api, session, new RetrobatPaths());
+            new AccountMenuWindow(session, sync).ShowDialog();
+            return 0;
+        }
+
         if (needDownload)
         {
             if (!session.LoadPersisted())

@@ -1,6 +1,7 @@
 using System.Text;
 using System.Xml.Linq;
 using RetroBat.Core.Contracts;
+using RetroBat.Services.Account;
 using RetroBat.Services.Api;
 
 namespace RetroBat.Services.Games;
@@ -18,13 +19,25 @@ public sealed class CatalogSync(ApiClient api, SessionManager session, RetrobatP
     /// <summary>Marker prefix identifying a not-yet-downloaded stub ROM.</summary>
     public const string StubPrefix = "RBSTUB:";
 
+    /// <summary>Marker prefix identifying the "Mi Cuenta" account entry (a
+    /// pseudo-ROM the launch proxy turns into the account menu, not a game).</summary>
+    public const string AccountPrefix = "RBACCT:";
+
+    /// <summary>Base filename (without extension) of the account pseudo-ROM.
+    /// Leading underscore keeps it first in the console's game list.</summary>
+    private const string AccountFileBase = "_mi_cuenta";
+
     /// <summary>Fetch the catalog and materialize stubs + gamelists. Returns the
-    /// number of game entries written.</summary>
-    public async Task<int> SyncAsync(CancellationToken ct = default)
+    /// number of game entries written. <paramref name="status"/> is the current
+    /// license state used for the "Mi Cuenta" entry; when null it is fetched.</summary>
+    public async Task<int> SyncAsync(
+        LicenseState? status = null, string? email = null, CancellationToken ct = default)
     {
         var catalog = await session
             .AuthorizedAsync((token) => api.GetCatalogAsync(token, ct), ct)
             .ConfigureAwait(false);
+
+        status ??= await session.GetStatusAsync(ct).ConfigureAwait(false);
 
         var systems = catalog.Systems.ToDictionary(s => s.Id);
         var byFolder = new Dictionary<string, List<GameDto>>();
@@ -42,10 +55,34 @@ public sealed class CatalogSync(ApiClient api, SessionManager session, RetrobatP
             list.Add(game);
         }
 
+        var acctShort = AccountStatusText.Short(status);
+        var acctDesc = AccountStatusText.Full(status, email);
         foreach (var (folder, games) in byFolder)
-            WriteGameList(paths.RomsDir(folder), games);
+        {
+            var dir = paths.RomsDir(folder);
+            var acctFile = WriteAccountEntry(dir, games);
+            WriteGameList(dir, games, acctFile, acctShort, acctDesc);
+        }
 
         return catalog.Games.Count;
+    }
+
+    /// <summary>True when the file is the "Mi Cuenta" account pseudo-ROM.</summary>
+    public static bool IsAccount(string path)
+    {
+        try
+        {
+            if (!File.Exists(path))
+                return false;
+            if (new FileInfo(path).Length > 256)
+                return false;
+            var text = File.ReadAllText(path, Encoding.ASCII);
+            return text.StartsWith(AccountPrefix, StringComparison.Ordinal);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     /// <summary>True when the file is a sync stub (not a real downloaded ROM).</summary>
@@ -94,9 +131,35 @@ public sealed class CatalogSync(ApiClient api, SessionManager session, RetrobatP
         File.WriteAllText(path, StubPrefix + gameId, Encoding.ASCII);
     }
 
-    private static void WriteGameList(string dir, IReadOnlyList<GameDto> games)
+    /// <summary>Write the account pseudo-ROM into a console folder, reusing the
+    /// console's own ROM extension so EmulationStation lists it. Returns the
+    /// filename to reference from gamelist.xml.</summary>
+    private static string WriteAccountEntry(string dir, IReadOnlyList<GameDto> games)
+    {
+        var ext = Path.GetExtension(games[0].RomFilename);
+        if (string.IsNullOrEmpty(ext))
+            ext = ".zip";
+        var fileName = AccountFileBase + ext;
+        File.WriteAllText(Path.Combine(dir, fileName), AccountPrefix, Encoding.ASCII);
+        return fileName;
+    }
+
+    private static void WriteGameList(
+        string dir,
+        IReadOnlyList<GameDto> games,
+        string accountFile,
+        string accountShort,
+        string accountDesc)
     {
         var list = new XElement("gameList");
+
+        // "Mi Cuenta" first so it sits at the top of the console's list.
+        list.Add(new XElement(
+            "game",
+            new XElement("path", "./" + accountFile),
+            new XElement("name", "Mi Cuenta — " + accountShort),
+            new XElement("desc", accountDesc)));
+
         foreach (var g in games)
         {
             list.Add(new XElement(
