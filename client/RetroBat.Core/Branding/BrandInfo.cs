@@ -15,6 +15,12 @@ public static class BrandInfo
     public const string FullName = "Retro Games Saviour";
 
     /// <summary>
+    /// This build's version (semver). The updater compares it to the backend's
+    /// <c>/client/version</c>. Keep it in sync with the installer's AppVersion.
+    /// </summary>
+    public const string AppVersion = "0.1.0";
+
+    /// <summary>
     /// HKCU registry key holding the DPAPI-protected session and clock
     /// high-water mark. Bumping the brand starts a fresh key, so an existing
     /// install's persisted session is dropped and the user signs in again.

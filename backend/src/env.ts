@@ -16,6 +16,16 @@ export interface Env {
   R2_ACCOUNT_ID: string;
   R2_ENDPOINT: string;
   R2_BUCKET: string;
+
+  /* client auto-update (non-secret vars, wrangler.toml [vars]; optional) */
+  /** Latest published desktop client version (semver). */
+  CLIENT_LATEST_VERSION?: string;
+  /** Minimum supported client version; older clients must update. */
+  CLIENT_MIN_VERSION?: string;
+  /** Installer download URL for the latest client. */
+  CLIENT_DOWNLOAD_URL?: string;
+  /** Optional release notes for the latest client. */
+  CLIENT_RELEASE_NOTES?: string;
 }
 
 /** Hono generics for this app: typed bindings + per-request variables. */

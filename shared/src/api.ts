@@ -140,3 +140,21 @@ export type BillingWebhookRequest = unknown;
 export interface BillingWebhookResponse {
   received: true;
 }
+
+/* ----------------------------- client ----------------------------- */
+
+/**
+ * GET /client/version — public. Latest desktop client build, for the
+ * auto-updater. No request body. The client compares its own build to
+ * `latestVersion` (offer update) and `minVersion` (force update).
+ */
+export interface ClientVersionResponse {
+  /** Latest published client version (semver, e.g. "0.1.0"). */
+  latestVersion: string;
+  /** Minimum supported version; clients below this must update to run. */
+  minVersion: string;
+  /** Download URL for the latest installer. */
+  downloadUrl: string;
+  /** Human-readable release notes, or null. */
+  notes: string | null;
+}

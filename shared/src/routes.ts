@@ -52,6 +52,8 @@ export const ROUTES = {
   },
   billingWebhook: { method: "POST", path: "/billing/webhook", auth: "public" },
 
+  clientVersion: { method: "GET", path: "/client/version", auth: "public" },
+
   adminAuthGoogle: {
     method: "POST",
     path: "/admin/auth/google",

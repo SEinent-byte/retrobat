@@ -4,6 +4,14 @@ compatibility_date = "2026-11-13"
 compatibility_flags = ["nodejs_compat"]
 account_id = "2263e816c670f9c372ddd4db453bc458"
 
+# Client auto-update metadata (non-secret). Bump on each client release and
+# point CLIENT_DOWNLOAD_URL at the published installer (e.g. an R2 URL).
+[vars]
+CLIENT_LATEST_VERSION = "0.1.0"
+CLIENT_MIN_VERSION = "0.1.0"
+CLIENT_DOWNLOAD_URL = ""
+CLIENT_RELEASE_NOTES = ""
+
 # D1 (SQLite) — created in Phase 0
 [[d1_databases]]
 binding = "DB"

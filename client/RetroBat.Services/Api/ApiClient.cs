@@ -59,6 +59,11 @@ public sealed class ApiClient
         PostAsync<PlayEventRequest, PlayEventResponse>(
             "/play/event", body, sessionToken, ct);
 
+    /// <summary>Latest client build info (public, no auth) for the updater.</summary>
+    public Task<ClientVersionResponse> GetClientVersionAsync(
+        CancellationToken ct = default) =>
+        GetAsync<ClientVersionResponse>("/client/version", null, ct);
+
     /* --------------------------- transport --------------------------- */
 
     private async Task<TRes> GetAsync<TRes>(

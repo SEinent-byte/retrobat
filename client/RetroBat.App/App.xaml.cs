@@ -4,6 +4,7 @@ using RetroBat.Services;
 using RetroBat.Services.Api;
 using RetroBat.Services.Auth;
 using RetroBat.Services.Games;
+using RetroBat.Services.Update;
 
 namespace RetroBat.App;
 
@@ -24,8 +25,9 @@ public partial class App : Application
 
         var paths = new RetrobatPaths();
         var sync = new CatalogSync(api, session, paths);
+        var updates = new UpdateChecker(api);
 
-        var vm = new MainViewModel(session, sync);
+        var vm = new MainViewModel(session, sync, updates);
 
         var window = new MainWindow { DataContext = vm };
         window.Show();

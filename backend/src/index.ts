@@ -7,6 +7,7 @@ import { ApiException, fail } from "./lib/http.js";
 import { adminRoutes } from "./routes/admin.js";
 import { authRoutes } from "./routes/auth.js";
 import { catalogRoutes, downloadRoutes } from "./routes/catalog.js";
+import { clientRoutes } from "./routes/client.js";
 import { licenseRoutes } from "./routes/license.js";
 import { playRoutes } from "./routes/play.js";
 
@@ -30,6 +31,7 @@ app.route("/license", licenseRoutes);
 app.route("/catalog", catalogRoutes);
 app.route("/download", downloadRoutes);
 app.route("/play", playRoutes);
+app.route("/client", clientRoutes);
 app.route("/admin", adminRoutes);
 
 app.notFound(() => {

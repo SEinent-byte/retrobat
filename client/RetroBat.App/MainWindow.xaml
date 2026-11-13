@@ -28,8 +28,12 @@
                        Foreground="White" FontSize="15" />
         </Border>
 
-        <TextBlock Grid.Row="3" Text="{Binding SyncInfo}" TextWrapping="Wrap"
-                   Foreground="#7FBF7F" FontSize="12" VerticalAlignment="Top" />
+        <StackPanel Grid.Row="3" VerticalAlignment="Top">
+            <TextBlock Text="{Binding UpdateInfo}" TextWrapping="Wrap"
+                       Foreground="#E6B450" FontSize="12" Margin="0,0,0,4" />
+            <TextBlock Text="{Binding SyncInfo}" TextWrapping="Wrap"
+                       Foreground="#7FBF7F" FontSize="12" />
+        </StackPanel>
 
         <StackPanel Grid.Row="4" Orientation="Horizontal"
                     HorizontalAlignment="Right">

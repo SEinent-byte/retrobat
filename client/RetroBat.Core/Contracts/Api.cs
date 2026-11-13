@@ -41,3 +41,10 @@ public sealed record PlayEventRequest(
     int? DurationSec);
 
 public sealed record PlayEventResponse(bool Ok, string EventId);
+
+/// <summary>GET /client/version — public. Latest client build for auto-update.</summary>
+public sealed record ClientVersionResponse(
+    string LatestVersion,
+    string MinVersion,
+    string DownloadUrl,
+    string? Notes);

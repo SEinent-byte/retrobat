@@ -4,6 +4,7 @@ using RetroBat.Core.Security;
 using RetroBat.Services;
 using RetroBat.Services.Api;
 using RetroBat.Services.Games;
+using RetroBat.Services.Update;
 
 namespace RetroBat.App;
 
@@ -17,18 +18,21 @@ public sealed class MainViewModel : ViewModelBase
 {
     private readonly SessionManager _session;
     private readonly CatalogSync _sync;
+    private readonly UpdateChecker _updates;
 
     private string _statusText = "Not signed in.";
     private string? _userEmail;
     private string? _syncInfo;
+    private string? _updateInfo;
     private bool _isSignedIn;
     private bool _canStartTrial;
     private bool _isBusy;
 
-    public MainViewModel(SessionManager session, CatalogSync sync)
+    public MainViewModel(SessionManager session, CatalogSync sync, UpdateChecker updates)
     {
         _session = session;
         _sync = sync;
+        _updates = updates;
 
         SignInCommand = new AsyncRelayCommand(SignInAsync, () => !IsSignedIn, OnError);
         StartTrialCommand = new AsyncRelayCommand(StartTrialAsync, () => CanStartTrial, OnError);
@@ -42,6 +46,7 @@ public sealed class MainViewModel : ViewModelBase
     public string StatusText { get => _statusText; private set => Set(ref _statusText, value); }
     public string? UserEmail { get => _userEmail; private set => Set(ref _userEmail, value); }
     public string? SyncInfo { get => _syncInfo; private set => Set(ref _syncInfo, value); }
+    public string? UpdateInfo { get => _updateInfo; private set => Set(ref _updateInfo, value); }
     public bool IsBusy { get => _isBusy; private set => Set(ref _isBusy, value); }
 
     public bool IsSignedIn
@@ -59,11 +64,22 @@ public sealed class MainViewModel : ViewModelBase
     /// <summary>Resume a persisted session at startup.</summary>
     public async Task InitializeAsync()
     {
+        _ = CheckForUpdatesAsync();
         if (_session.LoadPersisted())
         {
             IsSignedIn = true;
             await RefreshAsync().ConfigureAwait(true);
         }
+    }
+
+    /// <summary>Best-effort update check; never blocks or throws.</summary>
+    private async Task CheckForUpdatesAsync()
+    {
+        var info = await _updates.CheckAsync().ConfigureAwait(true);
+        if (info is not { UpdateAvailable: true })
+            return;
+        var prefix = info.Mandatory ? "Update required" : "Update available";
+        UpdateInfo = $"{prefix}: v{info.LatestVersion} (you have v{info.CurrentVersion}).";
     }
 
     private Task SignInAsync() =>
