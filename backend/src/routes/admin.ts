@@ -9,6 +9,7 @@ import type {
   AdminNowPlayingResponse,
   AdminPromoteResponse,
   AdminTopGamesResponse,
+  AdminUploadRomResponse,
   AdminUpsertSystemResponse,
 } from "@retrobat/shared";
 import { Hono } from "hono";
@@ -34,6 +35,7 @@ import {
   promoteAdmin,
   setFreeWindow,
   topGames,
+  uploadRom,
   upsertSystem,
 } from "../services/admin.js";
 
@@ -103,6 +105,20 @@ adminRoutes.post("/games", jsonBody(createGameSchema), async (c) => {
     c.req.valid("json"),
   );
   return c.json(res, 201);
+});
+
+// Raw ROM upload: body is the file (octet-stream), not JSON, so no jsonBody.
+adminRoutes.post("/games/:id/rom", async (c) => {
+  const body = await c.req.arrayBuffer();
+  const res: AdminUploadRomResponse = await uploadRom(
+    db(c.env.DB),
+    c.env,
+    c.get("adminId"),
+    c.req.param("id"),
+    body,
+    c.req.header("Content-Type"),
+  );
+  return c.json(res);
 });
 
 adminRoutes.post("/games/:id/free-window", jsonBody(freeWindowSchema), async (c) => {

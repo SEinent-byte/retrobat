@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type {
   AdminIdentity,
   AdminUserDto,
+  GameDto,
   SystemDto,
 } from "@retrobat/shared";
 import { AdminApiError, adminApi, getToken, setToken } from "./api";
@@ -174,7 +175,7 @@ function Catalog() {
   const [romFilename, setRomFilename] = useState("");
   const [sizeBytes, setSizeBytes] = useState("0");
   const [trialEligible, setTrialEligible] = useState(false);
-  const [created, setCreated] = useState<string | null>(null);
+  const [created, setCreated] = useState<GameDto | null>(null);
 
   const load = () =>
     run(async () => {
@@ -197,7 +198,7 @@ function Catalog() {
         sizeBytes: Number(sizeBytes) || 0,
         trialEligible,
       });
-      setCreated(`Added "${game.title}" (${game.id}).`);
+      setCreated(game);
       setTitle("");
       setRomFilename("");
       setSizeBytes("0");
@@ -237,7 +238,11 @@ function Catalog() {
       <div className="panel">
         <h3 style={{ marginTop: 0 }}>Add game</h3>
         {error && <div className="error">{error}</div>}
-        {created && <div className="muted">{created}</div>}
+        {created && (
+          <div className="muted">
+            Added "{created.title}" ({created.id}). Upload its ROM below.
+          </div>
+        )}
         <div className="row" style={{ alignItems: "flex-end" }}>
           <div className="field">
             <label>Console</label>
@@ -268,10 +273,70 @@ function Catalog() {
           </button>
         </div>
         <p className="muted" style={{ fontSize: 12 }}>
-          The ROM file itself is uploaded to R2 separately; this registers its catalog entry.
+          Registering a game only creates its catalog row. Upload the ROM file below.
         </p>
       </div>
+
+      <UploadRom created={created} />
     </>
+  );
+}
+
+/* ----------------------------- Upload ROM ----------------------------- */
+
+function UploadRom({ created }: { created: GameDto | null }) {
+  const { error, run } = useError();
+  const [gameId, setGameId] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [done, setDone] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  // Prefill the id when a game was just created in the panel above.
+  useEffect(() => {
+    if (created) setGameId(created.id);
+  }, [created]);
+
+  const upload = () =>
+    run(async () => {
+      if (!gameId || !file) return;
+      setDone(null);
+      setBusy(true);
+      try {
+        const res = await adminApi.uploadRom(gameId.trim(), file);
+        setDone(`Uploaded ${res.romFilename} — ${fmtBytes(res.sizeBytes)} (etag ${res.etag}).`);
+        setFile(null);
+      } finally {
+        setBusy(false);
+      }
+    });
+
+  return (
+    <div className="panel">
+      <h3 style={{ marginTop: 0 }}>Upload ROM</h3>
+      {error && <div className="error">{error}</div>}
+      {done && <div className="muted">{done}</div>}
+      <div className="row" style={{ alignItems: "flex-end" }}>
+        <div className="field">
+          <label>Game id</label>
+          <input
+            value={gameId}
+            onChange={(e) => setGameId(e.target.value)}
+            placeholder="paste a game id"
+            style={{ minWidth: 300 }}
+          />
+        </div>
+        <div className="field">
+          <label>ROM file</label>
+          <input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+        </div>
+        <button className="btn" onClick={upload} disabled={!gameId || !file || busy}>
+          {busy ? "Uploading…" : "Upload to R2"}
+        </button>
+      </div>
+      <p className="muted" style={{ fontSize: 12 }}>
+        The file is stored at the game's R2 key; its registered size is updated to the real length.
+      </p>
+    </div>
   );
 }
 
@@ -346,6 +411,11 @@ function fmtDate(ms: number | null): string {
 }
 function fmtTime(ms: number): string {
   return new Date(ms).toLocaleTimeString();
+}
+function fmtBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 function fmtDuration(sec: number): string {
   const h = Math.floor(sec / 3600);

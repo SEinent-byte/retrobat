@@ -140,6 +140,21 @@ export interface AdminCreateGameRequest {
 }
 export type AdminCreateGameResponse = GameDto;
 
+/**
+ * POST /admin/games/:id/rom — upload the ROM bytes for a registered game to
+ * R2 (SPEC §10). Request body is the raw ROM file (application/octet-stream),
+ * not JSON. The server writes it to the game's `r2Key` and updates
+ * `sizeBytes` to the actual byte length. Admin session required.
+ */
+export interface AdminUploadRomResponse {
+  gameId: string;
+  romFilename: string;
+  /** Actual byte length written to R2 (overwrites the registered size). */
+  sizeBytes: number;
+  /** R2 object ETag of the stored object. */
+  etag: string;
+}
+
 /** POST /admin/games/:id/free-window — set/clear the free window (SPEC §10). */
 export interface AdminFreeWindowRequest {
   /** null on both clears the window. */

@@ -14,6 +14,7 @@ import {
   type AdminNowPlayingResponse,
   type AdminPromoteResponse,
   type AdminTopGamesResponse,
+  type AdminUploadRomResponse,
   type AdminUpsertSystemRequest,
   type AdminUserDto,
   AbuseState,
@@ -290,6 +291,49 @@ export async function createGame(
   await audit(dbc, adminId, "create_game", id, body, now);
   const row = await dbc.select().from(schema.games).where(eq(schema.games.id, id)).get();
   return toGameDto(row!);
+}
+
+/**
+ * POST /admin/games/:id/rom — store the ROM bytes in R2 at the game's
+ * `r2Key` (set at create time) and update `sizeBytes` to the real length.
+ * Body is the raw file; it is written through the R2 binding, never a
+ * presigned URL. Overwrites any previous object at the same key.
+ */
+export async function uploadRom(
+  dbc: Db,
+  env: Env,
+  adminId: string,
+  gameId: string,
+  body: ArrayBuffer,
+  contentType: string | undefined,
+  now = Date.now(),
+): Promise<AdminUploadRomResponse> {
+  const game = await dbc
+    .select()
+    .from(schema.games)
+    .where(eq(schema.games.id, gameId))
+    .get();
+  if (!game) throw fail.notFound("game not found");
+
+  const sizeBytes = body.byteLength;
+  if (sizeBytes === 0) throw fail.badRequest("empty ROM body");
+
+  const put = await env.ROMS.put(game.r2Key, body, {
+    httpMetadata: { contentType: contentType || "application/octet-stream" },
+  });
+
+  await dbc
+    .update(schema.games)
+    .set({ sizeBytes })
+    .where(eq(schema.games.id, gameId));
+
+  await audit(dbc, adminId, "upload_rom", gameId, { r2Key: game.r2Key, sizeBytes }, now);
+  return {
+    gameId,
+    romFilename: game.romFilename,
+    sizeBytes,
+    etag: put.etag,
+  };
 }
 
 export async function setFreeWindow(

@@ -76,6 +76,11 @@ export const ROUTES = {
   adminListSystems: { method: "GET", path: "/admin/systems", auth: "admin" },
   adminUpsertSystem: { method: "POST", path: "/admin/systems", auth: "admin" },
   adminCreateGame: { method: "POST", path: "/admin/games", auth: "admin" },
+  adminUploadRom: {
+    method: "POST",
+    path: "/admin/games/:id/rom",
+    auth: "admin",
+  },
   adminFreeWindow: {
     method: "POST",
     path: "/admin/games/:id/free-window",

@@ -12,6 +12,7 @@ import type {
   AdminPromoteRequest,
   AdminPromoteResponse,
   AdminTopGamesResponse,
+  AdminUploadRomResponse,
   AdminUpsertSystemRequest,
   AdminUpsertSystemResponse,
   ApiError,
@@ -84,6 +85,40 @@ async function request<T>(
   return (await res.json()) as T;
 }
 
+/** Upload a raw binary body (ROM file) instead of JSON. */
+async function requestBinary<T>(
+  method: "POST",
+  path: string,
+  file: Blob,
+): Promise<T> {
+  const headers: Record<string, string> = {
+    "X-Api-Version": config.apiVersion,
+    "Content-Type": "application/octet-stream",
+  };
+  const token = getToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${config.apiBaseUrl}${path}`, {
+    method,
+    headers,
+    body: file,
+  });
+
+  if (!res.ok) {
+    let code = "internal";
+    let message = `HTTP ${res.status}`;
+    try {
+      const err = (await res.json()) as ApiError;
+      code = err.error.code;
+      message = err.error.message;
+    } catch {
+      /* keep defaults */
+    }
+    throw new AdminApiError(code, message, res.status);
+  }
+  return (await res.json()) as T;
+}
+
 export const adminApi = {
   authGoogle: (idToken: string) =>
     request<AdminAuthResponse>("POST", "/admin/auth/google", { idToken }, false),
@@ -111,6 +146,9 @@ export const adminApi = {
 
   createGame: (body: AdminCreateGameRequest) =>
     request<AdminCreateGameResponse>("POST", "/admin/games", body),
+
+  uploadRom: (gameId: string, file: File) =>
+    requestBinary<AdminUploadRomResponse>("POST", `/admin/games/${gameId}/rom`, file),
 
   setFreeWindow: (gameId: string, body: AdminFreeWindowRequest) =>
     request<AdminFreeWindowResponse>(
