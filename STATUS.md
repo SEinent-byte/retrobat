@@ -5,10 +5,16 @@ _Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.
 ---
 ## ▶ RESUME HERE (read first)
 
-**TOTAL PRODUCT ≈ 80%.** (Backend ~100 + client ~95 + distro ~85 + billing 0 + polish ~25, weighted.) Functional core DONE + deployed to prod; standalone distro now installs (pristine RetroArch, own theme, RGS rebrand, installer, auto-update code). Remaining = monetization (billing 0%, BLOCKED) + distro finishing (deploy /client/version, first-run bootstrap, license-doc placeholders, vcredist) + domain.
+**TOTAL PRODUCT ≈ 82%.** (Backend ~100 + client ~95 + distro ~88 + billing 0 + polish ~25, weighted.) Functional core DONE + deployed to prod; standalone distro now INSTALLS + emulates + auto-updates (pristine RetroArch, own theme, RGS rebrand, Inno installer, `/client/version` live). Remaining = monetization (billing 0%, BLOCKED on provider) + distro finishing (first-run bootstrap, license-doc placeholders, vcredist) + domain.
+
+### ▶▶ NEXT SESSION — pick ONE (menu given to user last session)
+1. **First-run bootstrap** (recommended; autonomous). Fresh install has no "Mi Cuenta" seeding before login → user can't reach sign-in. Make ES show a Mi Cuenta entry with no prior login. Makes the distro usable end-to-end. See NEXT item 2 below.
+2. **Test the real installer** (autonomous). Run `D:\es-build\installer_out\RGS-Setup-0.1.0.exe` in a clean dir; validate install → ES boot → Mi Cuenta login → licensed-ROM download → play.
+3. **Billing** (step 9; BLOCKED — needs USER to choose a payment provider, Stripe recommended, + per-country methods). Can't start without that decision.
+4. **Finalize license docs** (needs USER contact email + product domain). Fill `<CONTACT>`/`<PRODUCT-DOMAIN>`, pin per-core source commits, mirror source tarballs to R2.
 
 **What works right now (prod):**
-- Backend Worker live, all user + admin endpoints + ROM upload. Prod Version `c197a131` (redeploy `cd backend && npx wrangler deploy` after pulls).
+- Backend Worker live, all user + admin endpoints + ROM upload + `/client/version`. Prod Version `f3dd3e06`, apiVersion 0.4.0 (redeploy: `cd backend; npx wrangler deploy` — PowerShell uses `;` not `&&`).
 - Client WPF: Google login, fingerprint, trial, anti-tamper, catalog sync. Email now persisted (DPAPI).
 - Admin panel live: https://retrobat-admin-7nj.pages.dev (login needs web-client, see Pending USER). ROM upload UI added.
 - ES-native: games show inside RetroBat; proxy downloads ROM on launch (HTTPS direct). "Mi Cuenta" native entry (avatar + live trial status + login/trial/logout menu). Proxy INSTALLED on this machine.
@@ -20,7 +26,7 @@ _Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.
 | Infra / auth / license / trial / anti-farm / anti-tamper | 100 |
 | Catalog / R2 download / play analytics | 100 |
 | Admin API + panel + ROM upload (deployed `c197a131`) | 95 (login needs web-client) |
-| ES-native integration (sync + proxy + Mi Cuenta) | 90 (real-ROM emulation untested) |
+| ES-native integration (sync + proxy + Mi Cuenta) | 95 (real-ROM emulation PASSED via launcher→RetroArch) |
 | Billing (step 9) | 0 — BLOCKED on provider |
 | Domain (step 10) | 0 — user, NON-blocking (loopback OAuth needs no domain) |
 | Standalone distro (own MIT/GPL frontend) | ~85 (ES boots; real-ROM emulation PASSED; es_systems emitted at login; pristine RetroArch + source offer; installer builds; own theme; rebrand to RGS; auto-update code-complete. Missing: backend deploy of /client/version, first-run bootstrap, license-doc placeholders, vcredist) |
