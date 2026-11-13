@@ -2,6 +2,41 @@
 
 _Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.md`)._
 
+---
+## ▶ RESUME HERE (read first)
+
+**MVP progress ≈ 80%.** Functional core DONE + deployed to prod. Remaining = monetization + distribution.
+
+**What works right now (prod):**
+- Backend Worker live, all user + admin endpoints. Latest prod Version `45976e2` era (redeploy `cd backend && npx wrangler deploy` after pulls).
+- Client WPF: Google login, fingerprint, trial, anti-tamper, catalog sync into RetroBat.
+- Admin panel live: https://retrobat-admin-7nj.pages.dev (login needs web-client, see Pending USER).
+- ES-native: games show inside RetroBat; proxy launcher downloads ROM on launch (HTTPS direct). Proxy INSTALLED on this machine.
+
+**Progress breakdown:**
+| Area | % |
+|---|---|
+| Infra / auth / license / trial / anti-farm / anti-tamper | 100 |
+| Catalog / R2 download / play analytics | 100 |
+| Admin API + panel | 95 (login needs web-client) |
+| ES-native integration (sync + proxy) | 90 (real-ROM emulation untested) |
+| Billing (step 9) | 0 — BLOCKED on provider |
+| Domain (step 10) | 0 — user |
+| Admin ROM upload to R2 + distribution installer/auto-update | ~10 |
+
+**Next session should tackle (in order):**
+1. Admin login web-client (user action) → then test panel live.
+2. Admin ROM **upload** endpoint (`POST /admin/games/:id/rom` → R2) + panel upload UI. (Today admin only registers the row; ROM is uploaded out-of-band.)
+3. Step 9 billing once provider chosen (Stripe recommended): `/billing/checkout` + `/billing/webhook` + subscriptions.
+4. Step 10 domain + Google redirect update.
+5. Distribution: single installer bundling .NET runtime + proxy install + auto-update.
+
+**Repo:** `SEinent-byte/retrobat` (private), branch `main`, clean. Push works (PAT in Credential Manager). `.NET` via `C:\Program Files\dotnet\dotnet.exe`.
+
+**Rollback proxy if needed:** `client/scripts/uninstall-launcher.ps1`.
+
+---
+
 ## Phase 0: COMPLETE (infra). Disk C: blocker RESOLVED (14G free).
 
 ## §14 step 1: DONE — `/shared` contracts FROZEN at `API_VERSION` 0.1.0.
@@ -12,8 +47,8 @@ _Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.
 ### Cloudflare (account `anthoniogarciareyes25@gmail.com`, id `2263e816c670f9c372ddd4db453bc458`)
 - **D1** `retrobat-db` → id `4ffd9d56-de6d-4a89-b61b-60d2193a072f` (binding `DB`)
 - **R2** bucket `retrobat-roms` (binding `ROMS`); S3 endpoint `https://2263e816c670f9c372ddd4db453bc458.r2.cloudflarestorage.com`
-- **Pages** `retrobat-admin` → https://retrobat-admin-7nj.pages.dev/
-- **Worker** `retrobat-api`: NOT deployed yet (deploy with backend code)
+- **Pages** `retrobat-admin` → https://retrobat-admin-7nj.pages.dev/ (admin panel DEPLOYED)
+- **Worker** `retrobat-api`: DEPLOYED → https://retrobat-api.anthoniogarciareyes25.workers.dev
 - wrangler: logged in as anthonio (OAuth); run via `npx -y wrangler@latest ...`
 - Config: `backend/wrangler.toml` (account_id + D1 + R2 bindings)
 
@@ -64,10 +99,9 @@ _Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.
 - `seeds/0001_systems.sql`: 10 RetroBat consoles, applied LOCAL + REMOTE.
 - Deployed to prod (Worker Version `392f5a83`). Verified on dev: visibility, presign, license_required, not_found.
 
-## §14 step 7: DONE — play events + aria2 downloads + emulator launch (commit `3ab38e5`, prod Version `43110f29`).
+## §14 step 7: DONE — play events + download + launch (commit `3ab38e5`, prod Version `43110f29`).
 - Backend `POST /play/event` (start opens row, end closes it).
-- Client `GameService`: /catalog -> aria2 download -> emulatorLauncher.exe (-system/-emulator libretro/-core/-rom) -> play start/end. UI catalog list + Play + progress bar.
-- `aria2c.exe` 1.37.0 fetched into `client/RetroBat.App/tools/` (gitignored; bundle at package time).
+- NOTE: step 7 client parts (GameService, aria2, in-app catalog/Play) were SUPERSEDED by the ES-native pivot below. aria2 removed; downloads are now direct HTTPS.
 
 ## Admin seeded
 - `admins`: anthoniogarciareyes25@gmail.com (id `54936e54-...`), remote + local.
