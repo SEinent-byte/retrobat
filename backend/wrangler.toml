@@ -1,0 +1,22 @@
+name = "retrobat-api"
+main = "src/index.ts"
+compatibility_date = "2026-11-13"
+compatibility_flags = ["nodejs_compat"]
+account_id = "efe1aea247077f2ce85d61c705bdff00"
+
+# D1 (SQLite) — created in Phase 0
+[[d1_databases]]
+binding = "DB"
+database_name = "retrobat-db"
+database_id = "b443cc2f-06a0-488f-b3fc-f9b9c0d1a62d"
+
+# R2 (ROM storage) — bucket pending: enable R2 in dashboard, then
+#   wrangler r2 bucket create retrobat-roms
+[[r2_buckets]]
+binding = "ROMS"
+bucket_name = "retrobat-roms"
+
+# Secrets (never committed): set with `wrangler secret put <NAME>`
+#   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, JWT_SECRET,
+#   R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY
+# Local dev values go in backend/.dev.vars (gitignored).
