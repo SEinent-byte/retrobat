@@ -72,10 +72,18 @@ _Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.
 ## Admin seeded
 - `admins`: anthoniogarciareyes25@gmail.com (id `54936e54-...`), remote + local.
 
-## NEXT (autonomous): §14 step 8 — admin panel (`/admin-web` Cloudflare Pages) + backend `/admin/*` endpoints.
-## Blocked: step 9 (billing) — payment provider still TBD (SPEC §12). Step 10 (domain) — user.
+## §14 step 8: DONE — admin API + panel (shared 0.2.0, backend Version `86292d74`).
+- Backend `/admin/*`: Google-gated admin sessions, users+grant, analytics (top-games/now-playing), systems upsert, game create (extension validation), free-window, promote; admin_audit on every mutation; CORS on /admin/*.
+- Panel (Vite+React+TS) live: **https://retrobat-admin-7nj.pages.dev** — Users / Consoles&Games / Analytics tabs.
+- Admin login = GIS (needs a Google WEB OAuth client; see below). Verified prod /admin/* with a signed admin token.
 
-## Pending USER (not blocking)
-- [ ] **Test interactive Google sign-in** (your Google account + browser): `cd client && "C:\Program Files\dotnet\dotnet.exe" run --project RetroBat.App`, click Sign in.
+## NEXT: step 9 (billing) BLOCKED — payment provider TBD (SPEC §12). Step 10 (domain) — user.
+
+## Pending USER
+- [ ] **Google WEB OAuth client** for admin login: create a "Web application" OAuth client in Google Cloud, add origin `https://retrobat-admin-7nj.pages.dev` (and `http://localhost:5173` for dev) to Authorized JavaScript origins. Then:
+      - set Pages build var `VITE_ADMIN_GOOGLE_CLIENT_ID` = that id (and redeploy), AND
+      - `cd backend && npx wrangler secret put ADMIN_GOOGLE_CLIENT_ID` = same id.
+      Until then the panel shows setup instructions instead of a login button.
 - [ ] **Payment provider** decision to unblock step 9 (Stripe or other).
+- [ ] (optional) **Test client Google sign-in**: `cd client && "C:\Program Files\dotnet\dotnet.exe" run --project RetroBat.App`.
 - [ ] (Optional) Rotate GitHub PAT, then re-store via the `git credential approve` one-liner above.
