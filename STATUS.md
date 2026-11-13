@@ -23,12 +23,13 @@ _Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.
 | ES-native integration (sync + proxy + Mi Cuenta) | 90 (real-ROM emulation untested) |
 | Billing (step 9) | 0 — BLOCKED on provider |
 | Domain (step 10) | 0 — user, NON-blocking (loopback OAuth needs no domain) |
-| Standalone distro (own MIT/GPL frontend) | ~20 (Phase 1 launch DONE) |
+| Standalone distro (own MIT/GPL frontend) | ~35 (Phase 1 launch DONE; Phase 0 cores DONE; ES binary BLOCKED) |
 
 **▶ ACTIVE TRACK: standalone commercial distro (replaces RetroBat).**
 Decision (see memory `retrobat-licensing-distribution`): CANNOT bundle RetroBat (CC BY-NC-SA NonCommercial). Build our own Windows distro from MIT (batocera-emulationstation) + GPL (RetroArch) + our branding. **Full plan: `C:\Users\a\.claude\plans\fuzzy-leaping-fiddle.md`.**
 - **DONE Phase 1** (commit `08dc783`): launcher runs `retroarch.exe -L cores\<core>_libretro.dll <rom>` (distro mode) with fallback to RetroBat launcher; CatalogSync generates own `es_systems.cfg.dist` from catalog (DefaultCore baked into command). NOT yet: live-test of es_systems.cfg.dist (needs a sync), real-ROM emulation.
-- **NEXT Phase 0** (blocking, research): web-verify core licenses. 2 suspects likely NON-commercial → swap: `snes9x` (→ mesen-s/bsnes GPL), `genesis_plus_gx` (Eke-Eke "NOT for commercial use" → PicoDrive/BlastEm, verify). If swapped, edit `backend/seeds/0001_systems.sql` default_core + re-seed D1. Also obtain MIT ES prebuilt + stage RetroArch + 4 missing cores (snes9x,mgba,mupen64plus_next,pcsx_rearmed).
+- **DONE Phase 0 — core licenses** (this session): web-audited all 8 cores. Non-commercial confirmed: `snes9x`, `genesis_plus_gx`, `picodrive` (MAME). Swapped to GPL: `snes9x`→`bsnes`, `genesis_plus_gx`→`blastem` (MD) + `gearsystem` (MS). Commercial-OK kept: fceumm GPLv2, gambatte GPLv2, mgba MPL2, mupen64plus_next GPLv3, pcsx_rearmed GPLv2, desmume GPLv2. Edited `backend/seeds/0001_systems.sql` + added `0002_core_licenses.sql` (idempotent UPDATE); applied to D1 **local + remote**. All 9 commercial-safe core DLLs staged on disk (`emulators/retroarch/cores`); downloaded missing 4 (mgba, blastem, mupen64plus_next, pcsx_rearmed) from libretro buildbot. GPL obligation: ship source offer for GPLv3/MPL2 cores at distribution.
+- **BLOCKED Phase 0 — ES binary** (decision needed): NO clean standalone Windows MIT ES build exists. `batocera-emulationstation` = build-from-source only (no official Win release); ES-DE recent versions moved to custom freeware-ish license (MIT ref is a 2023 fork mirror, not confirmed commercial-clean). Options: (A) build batocera-ES from source for Windows [MIT engine, high effort], (B) verify + use a specific prebuilt fork + its license, (C) confirm current ES-DE license terms. **Until resolved, cannot stage `dist/` ES frontend (Phase 0 items 3-4: RetroArch staging into dist/ + theme).**
 - **Phase 2**: Inno Setup installer, self-contained publish, assemble dist/ tree. **Phase 3**: auto-update (`GET /client/version` on Worker + R2 bundles). **Phase 4**: rebrand (pick product NAME — pending user) + own theme.
 
 **Other pending (non-distro):**
