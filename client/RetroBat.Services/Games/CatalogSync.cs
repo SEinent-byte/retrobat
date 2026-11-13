@@ -85,15 +85,23 @@ public sealed class CatalogSync(ApiClient api, SessionManager session, RetrobatP
     /// <summary>
     /// Generate the standalone EmulationStation systems config from the catalog
     /// (one &lt;system&gt; per console, each launching our launcher with the
-    /// system's default core). Written next to es_systems.cfg as a ".dist" file
-    /// so a RetroBat dev install is never clobbered; the packaged distribution
-    /// ships this as the sole es_systems.cfg.
+    /// system's default core).
+    /// <para>
+    /// In the distro layout the real <c>es_systems.cfg</c> is written straight
+    /// into the ES home at the install root, with <c>%HOME%\launcher.exe</c> and
+    /// <c>~\roms\&lt;folder&gt;</c> paths (both resolve to the install root when ES
+    /// runs with that home). In a RetroBat dev install it is written as a
+    /// <c>.dist</c> sidecar instead, so the real config is never clobbered.
+    /// </para>
     /// </summary>
     private void WriteEsSystems(IReadOnlyList<SystemDto> systems)
     {
         var home = paths.EmulationStationHome;
         if (!Directory.Exists(home))
             return;
+
+        var distro = paths.IsDistro;
+        var launcher = paths.LauncherExeName;
 
         var root = new XElement("systemList");
         foreach (var s in systems)
@@ -105,20 +113,26 @@ public sealed class CatalogSync(ApiClient api, SessionManager session, RetrobatP
                 ? ""
                 : $" -core {s.DefaultCore}";
             var command =
-                $"\"%HOME%\\emulatorLauncher.exe\" -system {s.Id}{coreArgs} -rom %ROM%";
+                $"\"%HOME%\\{launcher}\" -system {s.Id}{coreArgs} -rom %ROM%";
+            // Distro ES home sits at the install root, so ~ already points there;
+            // a RetroBat dev home is one level under emulationstation\, so hop up.
+            var romPath = distro
+                ? $"~\\roms\\{s.RetrobatFolder}"
+                : $"~\\..\\roms\\{s.RetrobatFolder}";
 
             root.Add(new XElement(
                 "system",
                 new XElement("name", s.Id),
                 new XElement("fullname", s.Name),
-                new XElement("path", $"~\\..\\roms\\{s.RetrobatFolder}"),
+                new XElement("path", romPath),
                 new XElement("extension", ext),
                 new XElement("command", command),
                 new XElement("platform", s.Id),
                 new XElement("theme", s.Id)));
         }
 
-        new XDocument(root).Save(Path.Combine(home, "es_systems.cfg.dist"));
+        var fileName = distro ? "es_systems.cfg" : "es_systems.cfg.dist";
+        new XDocument(root).Save(Path.Combine(home, fileName));
     }
 
     /// <summary>True when the file is the "Mi Cuenta" account pseudo-ROM.</summary>

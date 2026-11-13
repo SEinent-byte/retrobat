@@ -28,11 +28,28 @@ public sealed class RetrobatPaths
             : AppContext.BaseDirectory;
     }
 
+    /// <summary>
+    /// True for the standalone (distro) layout, where the ES binary and its
+    /// <c>.emulationstation</c> home sit at the install root. False for a
+    /// RetroBat dev install, where ES lives under an <c>emulationstation\</c>
+    /// subfolder and our launcher is the <c>emulatorLauncher.exe</c> proxy.
+    /// </summary>
+    public bool IsDistro =>
+        File.Exists(Path.Combine(RootDir, "emulationstation.exe"));
+
     public string RomsDir(string retrobatFolder) =>
         Path.Combine(RootDir, "roms", retrobatFolder);
 
     public string EmulatorLauncherExe =>
         Path.Combine(RootDir, "emulationstation", "emulatorLauncher.exe");
+
+    /// <summary>
+    /// Filename ES invokes to launch a game, relative to the ES home root
+    /// (<c>%HOME%</c>): the standalone launcher in distro mode, the proxy that
+    /// shadows RetroBat's own launcher otherwise.
+    /// </summary>
+    public string LauncherExeName =>
+        IsDistro ? "launcher.exe" : "emulatorLauncher.exe";
 
     /// <summary>RetroArch executable bundled with the distribution.</summary>
     public string RetroArchExe =>
@@ -44,7 +61,9 @@ public sealed class RetrobatPaths
 
     /// <summary>EmulationStation home (holds es_systems.cfg, themes, settings).</summary>
     public string EmulationStationHome =>
-        Path.Combine(RootDir, "emulationstation", ".emulationstation");
+        IsDistro
+            ? Path.Combine(RootDir, ".emulationstation")
+            : Path.Combine(RootDir, "emulationstation", ".emulationstation");
 
     private static string FindRoot(string start)
     {
