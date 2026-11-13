@@ -45,7 +45,7 @@
         </ListBox>
 
         <ProgressBar Grid.Row="4" Height="6" Margin="0,10,0,10"
-                     Minimum="0" Maximum="1" Value="{Binding DownloadProgress}"
+                     Minimum="0" Maximum="1" Value="{Binding DownloadProgress, Mode=OneWay}"
                      Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}" />
 
         <StackPanel Grid.Row="5" Orientation="Horizontal"
