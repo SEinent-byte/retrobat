@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <LangVersion>latest</LangVersion>
+    <!-- Installed into RetroBat as emulatorLauncher.exe (proxy). -->
+    <AssemblyName>RetroBat.Launcher</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RetroBat.Core\RetroBat.Core.csproj" />
+    <ProjectReference Include="..\RetroBat.Services\RetroBat.Services.csproj" />
+  </ItemGroup>
+
+</Project>

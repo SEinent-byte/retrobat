@@ -21,18 +21,6 @@ public sealed class RetrobatPaths
     public string EmulatorLauncherExe =>
         Path.Combine(RootDir, "emulationstation", "emulatorLauncher.exe");
 
-    /// <summary>aria2c.exe: next to the app (tools\), else in the RetroBat root.</summary>
-    public string Aria2Exe
-    {
-        get
-        {
-            var local = Path.Combine(AppContext.BaseDirectory, "tools", "aria2c.exe");
-            if (File.Exists(local))
-                return local;
-            return Path.Combine(RootDir, "aria2c.exe");
-        }
-    }
-
     private static string FindRoot(string start)
     {
         var dir = new DirectoryInfo(start);

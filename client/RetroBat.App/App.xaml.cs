@@ -23,12 +23,9 @@ public partial class App : Application
         var session = new SessionManager(api, store, oauth, clock);
 
         var paths = new RetrobatPaths();
-        var games = new GameService(
-            api, session, paths,
-            new Aria2DownloadManager(paths),
-            new EmulatorLauncher(paths));
+        var sync = new CatalogSync(api, session, paths);
 
-        var vm = new MainViewModel(session, games);
+        var vm = new MainViewModel(session, sync);
 
         var window = new MainWindow { DataContext = vm };
         window.Show();

@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RetroBat.Services", "RetroB
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RetroBat.App", "RetroBat.App\RetroBat.App.csproj", "{338793F1-C7CF-464F-AC58-200E7DF33E73}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RetroBat.Launcher", "RetroBat.Launcher\RetroBat.Launcher.csproj", "{7C694CCE-2D26-434C-A2F3-2012A3723A39}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{338793F1-C7CF-464F-AC58-200E7DF33E73}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{338793F1-C7CF-464F-AC58-200E7DF33E73}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{338793F1-C7CF-464F-AC58-200E7DF33E73}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7C694CCE-2D26-434C-A2F3-2012A3723A39}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7C694CCE-2D26-434C-A2F3-2012A3723A39}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7C694CCE-2D26-434C-A2F3-2012A3723A39}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7C694CCE-2D26-434C-A2F3-2012A3723A39}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

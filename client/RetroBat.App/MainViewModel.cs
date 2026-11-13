@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using RetroBat.App.Mvvm;
 using RetroBat.Core.Contracts;
 using RetroBat.Core.Security;
@@ -8,61 +7,42 @@ using RetroBat.Services.Games;
 
 namespace RetroBat.App;
 
-/// <summary>A catalog row: the game plus its resolved system, for display and
-/// launch.</summary>
-public sealed record GameRow(GameDto Game, SystemDto System)
-{
-    public string Title => Game.Title;
-    public string SystemName => System.Name;
-    public bool TrialEligible => Game.TrialEligible;
-}
-
-/// <summary>Drives the main window: sign-in, license status, trial start.
-/// All access decisions come from the server (SPEC §2); this only displays
-/// what GET /license/status returns.</summary>
+/// <summary>
+/// Account panel: sign-in, license status, trial start. Games themselves live
+/// inside RetroBat (EmulationStation); after sign-in this window silently
+/// syncs the catalog into RetroBat via <see cref="CatalogSync"/> so the games
+/// appear there. No catalog/play UI here.
+/// </summary>
 public sealed class MainViewModel : ViewModelBase
 {
     private readonly SessionManager _session;
-    private readonly GameService _games;
+    private readonly CatalogSync _sync;
 
     private string _statusText = "Not signed in.";
     private string? _userEmail;
+    private string? _syncInfo;
     private bool _isSignedIn;
     private bool _canStartTrial;
     private bool _isBusy;
-    private GameRow? _selectedGame;
-    private double _downloadProgress;
 
-    public MainViewModel(SessionManager session, GameService games)
+    public MainViewModel(SessionManager session, CatalogSync sync)
     {
         _session = session;
-        _games = games;
+        _sync = sync;
 
         SignInCommand = new AsyncRelayCommand(SignInAsync, () => !IsSignedIn, OnError);
-        RefreshCommand = new AsyncRelayCommand(RefreshStatusAsync, () => IsSignedIn, OnError);
         StartTrialCommand = new AsyncRelayCommand(StartTrialAsync, () => CanStartTrial, OnError);
         SignOutCommand = new AsyncRelayCommand(SignOutAsync, () => IsSignedIn, OnError);
-        PlayCommand = new AsyncRelayCommand(PlayAsync, () => SelectedGame is not null, OnError);
     }
 
     public AsyncRelayCommand SignInCommand { get; }
-    public AsyncRelayCommand RefreshCommand { get; }
     public AsyncRelayCommand StartTrialCommand { get; }
     public AsyncRelayCommand SignOutCommand { get; }
-    public AsyncRelayCommand PlayCommand { get; }
-
-    public ObservableCollection<GameRow> Games { get; } = new();
 
     public string StatusText { get => _statusText; private set => Set(ref _statusText, value); }
     public string? UserEmail { get => _userEmail; private set => Set(ref _userEmail, value); }
+    public string? SyncInfo { get => _syncInfo; private set => Set(ref _syncInfo, value); }
     public bool IsBusy { get => _isBusy; private set => Set(ref _isBusy, value); }
-    public double DownloadProgress { get => _downloadProgress; private set => Set(ref _downloadProgress, value); }
-
-    public GameRow? SelectedGame
-    {
-        get => _selectedGame;
-        set { if (Set(ref _selectedGame, value)) PlayCommand.RaiseCanExecuteChanged(); }
-    }
 
     public bool IsSignedIn
     {
@@ -76,73 +56,30 @@ public sealed class MainViewModel : ViewModelBase
         private set { if (Set(ref _canStartTrial, value)) StartTrialCommand.RaiseCanExecuteChanged(); }
     }
 
-    /// <summary>Called once at window load: resume a persisted session.</summary>
+    /// <summary>Resume a persisted session at startup.</summary>
     public async Task InitializeAsync()
     {
         if (_session.LoadPersisted())
         {
             IsSignedIn = true;
-            await RefreshStatusAsync().ConfigureAwait(true);
+            await RefreshAsync().ConfigureAwait(true);
         }
     }
 
-    private async Task SignInAsync()
-    {
-        await RunBusy("Opening browser for Google sign-in…", async () =>
+    private Task SignInAsync() =>
+        RunBusy("Opening browser for Google sign-in…", async () =>
         {
             var user = await _session.SignInAsync().ConfigureAwait(true);
             UserEmail = user.Email;
             IsSignedIn = true;
-            await RefreshStatusAsync().ConfigureAwait(true);
-        }).ConfigureAwait(true);
-    }
-
-    private Task RefreshStatusAsync() =>
-        RunBusy("Checking license…", async () =>
-        {
-            var state = await _session.GetStatusAsync().ConfigureAwait(true);
-            var text = Format(state);
-            if (_session.ClockState.Status == ClockStatus.RolledBack)
-                text += "\n⚠ System clock set back — time is verified online.";
-            StatusText = text;
-            CanStartTrial = state.Status == LicenseStatus.None;
-            await LoadCatalogAsync().ConfigureAwait(true);
+            await RefreshAsync().ConfigureAwait(true);
         });
-
-    private async Task LoadCatalogAsync()
-    {
-        var catalog = await _games.GetCatalogAsync().ConfigureAwait(true);
-        var systems = catalog.Systems.ToDictionary(s => s.Id);
-        Games.Clear();
-        foreach (var g in catalog.Games)
-        {
-            if (systems.TryGetValue(g.SystemId, out var sys))
-                Games.Add(new GameRow(g, sys));
-        }
-    }
-
-    private Task PlayAsync()
-    {
-        var row = SelectedGame;
-        if (row is null)
-            return Task.CompletedTask;
-
-        return RunBusy($"Preparing {row.Title}…", async () =>
-        {
-            DownloadProgress = 0;
-            var progress = new Progress<double>(p => DownloadProgress = p);
-            StatusText = $"Downloading {row.Title}…";
-            await _games.PlayAsync(row.Game, progress).ConfigureAwait(true);
-            StatusText = $"Finished playing {row.Title}.";
-            await RefreshStatusAsync().ConfigureAwait(true);
-        });
-    }
 
     private Task StartTrialAsync() =>
         RunBusy("Starting trial…", async () =>
         {
             await _session.ActivateTrialAsync().ConfigureAwait(true);
-            await RefreshStatusAsync().ConfigureAwait(true);
+            await RefreshAsync().ConfigureAwait(true);
         });
 
     private async Task SignOutAsync()
@@ -151,9 +88,35 @@ public sealed class MainViewModel : ViewModelBase
         IsSignedIn = false;
         CanStartTrial = false;
         UserEmail = null;
-        Games.Clear();
-        SelectedGame = null;
+        SyncInfo = null;
         StatusText = "Not signed in.";
+    }
+
+    /// <summary>Refresh license status, then sync the catalog into RetroBat.</summary>
+    private async Task RefreshAsync()
+    {
+        var state = await _session.GetStatusAsync().ConfigureAwait(true);
+        var text = Format(state);
+        if (_session.ClockState.Status == ClockStatus.RolledBack)
+            text += "\n⚠ System clock set back — time is verified online.";
+        StatusText = text;
+        CanStartTrial = state.Status == LicenseStatus.None;
+
+        await SyncCatalogAsync().ConfigureAwait(true);
+    }
+
+    private async Task SyncCatalogAsync()
+    {
+        try
+        {
+            SyncInfo = "Syncing library into RetroBat…";
+            var n = await _sync.SyncAsync().ConfigureAwait(true);
+            SyncInfo = $"{n} game(s) available in RetroBat. Launch RetroBat to play.";
+        }
+        catch (Exception ex)
+        {
+            SyncInfo = $"Library sync failed: {Describe(ex)}";
+        }
     }
 
     private async Task RunBusy(string message, Func<Task> work)
@@ -173,25 +136,25 @@ public sealed class MainViewModel : ViewModelBase
     private void RaiseCommands()
     {
         SignInCommand.RaiseCanExecuteChanged();
-        RefreshCommand.RaiseCanExecuteChanged();
         StartTrialCommand.RaiseCanExecuteChanged();
         SignOutCommand.RaiseCanExecuteChanged();
-        PlayCommand.RaiseCanExecuteChanged();
     }
 
     private void OnError(Exception ex)
     {
         IsBusy = false;
-        StatusText = ex switch
-        {
-            ApiException { Code: ApiErrorCode.TrialAlreadyUsed } =>
-                "This device already used its free trial.",
-            ApiException { Code: ApiErrorCode.Blocked } =>
-                "This account or device is blocked.",
-            ApiException api => $"Error: {api.Message}",
-            _ => $"Error: {ex.Message}",
-        };
+        StatusText = "Error: " + Describe(ex);
     }
+
+    private static string Describe(Exception ex) => ex switch
+    {
+        ApiException { Code: ApiErrorCode.TrialAlreadyUsed } =>
+            "this device already used its free trial",
+        ApiException { Code: ApiErrorCode.Blocked } =>
+            "this account or device is blocked",
+        ApiException api => api.Message,
+        _ => ex.Message,
+    };
 
     private static string Format(LicenseState s) => s.Status switch
     {
