@@ -77,6 +77,15 @@ _Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.
 - Panel (Vite+React+TS) live: **https://retrobat-admin-7nj.pages.dev** — Users / Consoles&Games / Analytics tabs.
 - Admin login = GIS (needs a Google WEB OAuth client; see below). Verified prod /admin/* with a signed admin token.
 
+## ARCHITECTURE PIVOT (done): ES-native, aria2 dropped (commit `de06962`/`88c83a2`).
+- Games live INSIDE RetroBat (EmulationStation), not a WPF storefront.
+- `CatalogSync` (in WPF, post-login) writes per-game stub `RBSTUB:<gameId>` at `roms\<folder>\<rom>` + `gamelist.xml`. Real downloaded ROMs preserved.
+- `RetroBat.Launcher` = proxy installed AS `emulationstation\emulatorLauncher.exe` (original kept as `emulatorLauncher_real.exe`). On launch: stub -> license check -> presigned R2 -> **direct HTTPS download** (HttpDownloadManager; aria2 removed) -> progress window -> play start -> real launcher -> play end.
+- WPF = account panel only (sign-in, status, start trial, sign out).
+- Install/uninstall: `client/scripts/install-launcher.ps1` / `uninstall-launcher.ps1`. **Proxy INSTALLED on this machine** (original backed up).
+- Verified: isolated wrapper run downloaded real ROM over stub (43->528B, NES header); sync wrote gamelist+preserved ROM; play start/end hit prod.
+- `.NET` note: proxy published framework-dependent single-file (needs .NET 8 Desktop runtime on target).
+
 ## NEXT: step 9 (billing) BLOCKED — payment provider TBD (SPEC §12). Step 10 (domain) — user.
 
 ## Pending USER
