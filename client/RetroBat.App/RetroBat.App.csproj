@@ -15,4 +15,12 @@
     <ProjectReference Include="..\RetroBat.Services\RetroBat.Services.csproj" />
   </ItemGroup>
 
+  <!-- Bundle aria2c.exe next to the app (gitignored; present at package time). -->
+  <ItemGroup>
+    <None Include="tools\aria2c.exe" Condition="Exists('tools\aria2c.exe')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>tools\aria2c.exe</Link>
+    </None>
+  </ItemGroup>
+
 </Project>
