@@ -5,11 +5,11 @@ _Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.
 ---
 ## ▶ RESUME HERE (read first)
 
-**TOTAL PRODUCT ≈ 82%.** (Backend ~100 + client ~95 + distro ~88 + billing 0 + polish ~25, weighted.) Functional core DONE + deployed to prod; standalone distro now INSTALLS + emulates + auto-updates (pristine RetroArch, own theme, RGS rebrand, Inno installer, `/client/version` live). Remaining = monetization (billing 0%, BLOCKED on provider) + distro finishing (first-run bootstrap, license-doc placeholders, vcredist) + domain.
+**TOTAL PRODUCT ≈ 82%.** (Backend ~100 + client ~95 + distro ~88 + billing 0 + polish ~25, weighted.) Functional core DONE + deployed to prod; standalone distro now INSTALLS + emulates + auto-updates (pristine RetroArch, own theme, RGS rebrand, Inno installer, `/client/version` live). Remaining = monetization (billing 0%, BLOCKED on provider) + distro finishing (license-doc placeholders, vcredist, installer rebuild + clean-dir test) + domain.
 
 ### ▶▶ NEXT SESSION — pick ONE (menu given to user last session)
-1. **First-run bootstrap** (recommended; autonomous). Fresh install has no "Mi Cuenta" seeding before login → user can't reach sign-in. Make ES show a Mi Cuenta entry with no prior login. Makes the distro usable end-to-end. See NEXT item 2 below.
-2. **Test the real installer** (autonomous). Run `D:\es-build\installer_out\RGS-Setup-0.1.0.exe` in a clean dir; validate install → ES boot → Mi Cuenta login → licensed-ROM download → play.
+1. ~~**First-run bootstrap**~~ **DONE** (commit `bb58667`). Fresh install now seeds a pre-login "Mi Cuenta — Sin sesion" entry in the first console; selecting it opens the account menu, first login re-syncs the full catalog. See block F below.
+2. **Test the real installer** (recommended; autonomous). REBUILD the installer first (dist changed: dummies dropped, seed added — see block F), then run `RGS-Setup-*.exe` in a clean dir; validate install → ES boot → Mi Cuenta login → licensed-ROM download → play.
 3. **Billing** (step 9; BLOCKED — needs USER to choose a payment provider, Stripe recommended, + per-country methods). Can't start without that decision.
 4. **Finalize license docs** (needs USER contact email + product domain). Fill `<CONTACT>`/`<PRODUCT-DOMAIN>`, pin per-core source commits, mirror source tarballs to R2.
 
@@ -29,7 +29,7 @@ _Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.
 | ES-native integration (sync + proxy + Mi Cuenta) | 95 (real-ROM emulation PASSED via launcher→RetroArch) |
 | Billing (step 9) | 0 — BLOCKED on provider |
 | Domain (step 10) | 0 — user, NON-blocking (loopback OAuth needs no domain) |
-| Standalone distro (own MIT/GPL frontend) | ~85 (ES boots; real-ROM emulation PASSED; es_systems emitted at login; pristine RetroArch + source offer; installer builds; own theme; rebrand to RGS; auto-update code-complete. Missing: backend deploy of /client/version, first-run bootstrap, license-doc placeholders, vcredist) |
+| Standalone distro (own MIT/GPL frontend) | ~85 (ES boots; real-ROM emulation PASSED; es_systems emitted at login; pristine RetroArch + source offer; installer builds; own theme; rebrand to RGS; auto-update code-complete; first-run bootstrap done. Missing: license-doc placeholders, vcredist, installer rebuild + clean-dir test) |
 
 **▶ ACTIVE TRACK: standalone commercial distro (replaces RetroBat).**
 Decision (see memory `retrobat-licensing-distribution`): CANNOT bundle RetroBat (CC BY-NC-SA NonCommercial). Build our own Windows distro from MIT (batocera-emulationstation) + GPL (RetroArch) + our branding. **Full plan: `C:\Users\a\.claude\plans\fuzzy-leaping-fiddle.md`.**
@@ -67,9 +67,11 @@ Decision (see memory `retrobat-licensing-distribution`): CANNOT bundle RetroBat 
   - **C — own theme.** `distro/theme/rgs-dark` (MIT, colors over default layout, accent `#1f6feb`). Installed to `dist\.emulationstation\themes`, `es_settings.cfg` ThemeSet=rgs-dark. ES loads it with no theme errors. (Licensing already satisfied: distro ships no NC theme.)
   - **D — rebrand.** `RetroBat.Core.Branding.BrandInfo` (Name "RGS", FullName "Retro Games Saviour", AppVersion, HKCU key `Software\RGS`). All user-facing product strings route through it; internal namespaces keep the RetroBat prefix. (Registry key moved → existing persisted session dropped.)
   - **E — auto-update.** Public `GET /client/version` (backend `routes/client.ts`, `CLIENT_*` vars in `wrangler.toml`). Shared `ClientVersionResponse`, API_VERSION 0.3.0→**0.4.0**. Client `UpdateChecker` (best-effort semver, non-blocking on startup) surfaces an update notice in the account window. **DEPLOYED** to prod (Worker Version `f3dd3e06`, apiVersion 0.4.0); `GET /client/version` live → `{"latestVersion":"0.1.0","minVersion":"0.1.0","downloadUrl":"","notes":""}`. Bump `CLIENT_*` + `BrandInfo.AppVersion` per release.
-- **▶ NEXT (resume here):**
+-   - **F — first-run bootstrap** (commit `bb58667`). Closed the chicken-egg gap: a fresh install shipped `es_systems.cfg` + dummy ROMs but no "Mi Cuenta" (CatalogSync writes it only post-login) → user couldn't reach sign-in. Now a pre-login welcome entry is seeded. `CatalogSync.WriteAccountOnly(dir, ext, status, email)` (reusable, same marker/icon/strings); `FirstRunSeed.Seed(paths)` reads the install's `es_systems.cfg`, seeds the FIRST console (nes) with a single `Mi Cuenta — Sin sesion` entry. Committed static seed at `distro/seed/roms/nes/` (+ README). **Live dist updated: dropped all dummy `test.*` ROMs, copied seed into `dist\roms\nes`.** Validated: `emulationstation.exe --home dist --debug` parses `roms/nes/gamelist.xml`, ignores the 9 empty consoles, shows only the welcome console. Flow: select Mi Cuenta → `AccountMenuWindow` → Google login → `SyncAsync` (AccountMenuWindow.xaml.cs:85) populates all consoles + games.
+    - **⚠ Installer must be rebuilt** — `dist\roms` changed. Assembly rule (distro/seed/README): copy `distro/seed/roms/*` into `dist/roms`, ship NO dummy ROMs.
+**▶ NEXT (resume here):**
   1. ~~Deploy backend~~ **DONE** (Worker Version `f3dd3e06`, `/client/version` live).
-  2. **First-run bootstrap** (new gap): a fresh install ships only 5-byte dummy ROMs so ES shows systems; before first login there is no real "Mi Cuenta" seeding. Decide how a just-installed user reaches sign-in (seed a Mi Cuenta entry at install, or a welcome system). The real SMK test ROM was removed from `dist\roms` (copyright — never bundle game ROMs).
+  2. ~~First-run bootstrap~~ **DONE** (block F above).
   3. **License docs finalization**: fill `<CONTACT>`/`<PRODUCT-DOMAIN>`, pin per-core source commits, mirror source tarballs (R2).
   4. **Installer polish**: bundle `vc_redist.x86`, set `CLIENT_DOWNLOAD_URL` to the published installer URL.
   - Non-distro still open: **billing** (BLOCKED on provider), **domain** (user), **admin web OAuth client** (user, see Pending USER).
