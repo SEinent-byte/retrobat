@@ -9,8 +9,12 @@ account_id = "2263e816c670f9c372ddd4db453bc458"
 [vars]
 CLIENT_LATEST_VERSION = "0.1.0"
 CLIENT_MIN_VERSION = "0.1.0"
-CLIENT_DOWNLOAD_URL = ""
+# Stable public link: the Worker redirects to a short-lived presigned R2 URL.
+CLIENT_DOWNLOAD_URL = "https://retrobat-api.anthoniogarciareyes25.workers.dev/client/download"
 CLIENT_RELEASE_NOTES = ""
+# R2 key of the installer served by GET /client/download (defaults to
+# releases/PlayVault-Setup-<CLIENT_LATEST_VERSION>.exe when unset).
+CLIENT_INSTALLER_KEY = "releases/PlayVault-Setup-0.1.0.exe"
 
 # D1 (SQLite) — created in Phase 0
 [[d1_databases]]

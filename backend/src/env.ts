@@ -26,6 +26,8 @@ export interface Env {
   CLIENT_DOWNLOAD_URL?: string;
   /** Optional release notes for the latest client. */
   CLIENT_RELEASE_NOTES?: string;
+  /** R2 object key of the latest installer, served by GET /client/download. */
+  CLIENT_INSTALLER_KEY?: string;
 }
 
 /** Hono generics for this app: typed bindings + per-request variables. */
