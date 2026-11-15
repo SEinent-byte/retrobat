@@ -7,6 +7,20 @@ _Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.
 
 **TOTAL PRODUCT ≈ 84%.** (Backend ~100 + client ~95 + distro ~90 + billing 0 + polish ~25, weighted.) Functional core DONE + deployed to prod; **standalone distro FULL PIPELINE validated end-to-end on a real clean install this session** (install → login → trial → sync → license → R2 download → RetroArch launch). Remaining = monetization (billing 0%, BLOCKED on provider) + content/UX polish (admin WEB OAuth client NOT done → owner can't upload yet; thumbnails feature; own wheel-layout theme; dedup; license-doc placeholders, vcredist) + domain. See the four NEW PENDING items + "FULL PIPELINE VALIDATED" below.
 
+### ▶▶ DONE 2026-11-15c — account UI moved OUT of game lists → ES top-left widget + Start menu (ES source change)
+Owner wanted the account (Mi Cuenta) in the top-left corner, not mixed into every game list, and no placeholder clutter. Shipped a real ES-engine change.
+- **ES source patches (external `D:\es-build\emulationstation`, NOT in git — re-apply when vendoring the build, like the `Log.cpp` `<chrono>` patch):**
+  - `es-core/src/Window.h` + `Window.cpp`: new **top-left account indicator** = toro avatar (`:/window_icon_256.png`) + one line of text, always visible (cloned from `mClock`). Reads `<ESHOME>\.emulationstation\account_status.txt` every 1500ms; empty/missing → "Mi Cuenta — Sin sesion". Rendered in `Window::render`, refreshed in `Window::update`, created in `Window::init`; member `mAccount`/`mAccountIcon`/`mAccountElapsed`.
+  - `es-app/src/guis/GuiMenu.cpp`: new **Start-menu "MI CUENTA"** entry at the top → runs `launcher.exe -account` (via `Utils::Platform::ProcessStartInfo`) then `ViewController::reloadAllGames(window,false,false,true)`. Only added when `launcher.exe` exists beside the ES exe.
+  - Rebuilt: `cmake --build build --config Release --parallel` (exit 0). New `emulationstation.exe` staged to `dist` + `C:\PlayVault`, **rcedit toro icon re-applied** after copy.
+- **Client (in git):**
+  - `CatalogSync.SyncAsync`: **stops writing the `_mi_cuenta.*` game entry**; strips any stale copy (`RemoveAccountEntry` per folder); writes games only; calls new `CatalogSync.WriteAccountStatus(paths, status)` → `account_status.txt` ("Mi Cuenta — " + `AccountStatusText.Short`).
+  - `FirstRunSeed`: still seeds a pre-login Mi Cuenta entry (safety: ES needs ≥1 system before login) + now writes `account_status.txt` (logged-out).
+  - `RetroBat.Launcher/App.xaml.cs`: new `-account` flag → opens `AccountMenuWindow` directly (no rom), then `WriteStatusAfterMenu` refreshes `account_status.txt` from the session (covers login/logout/trial). Legacy RBACCT pseudo-ROM path kept for pre-login seeds.
+  - Built clean (0 warn/0 err); launcher re-published self-contained single-file → `dist\launcher.exe` + `C:\PlayVault\launcher.exe`.
+- **Live test:** relaunch ES → toro taskbar/exe icon + top-left widget; Start → MI CUENTA → login/logout; open it once to re-sync (rewrites gamelists without the account entry). `account_status.txt` seeded with current trial for immediate display.
+- **⚠ Installer rebuild pending** to ship (dist changed: ES exe, launcher, resources/window_icon_256.png, es_settings LoadEmptySystems+CollectionSystemsAuto).
+
 ### ▶▶ SESSION 2026-11-15 — summary (resume from here)
 Done this session (all committed + pushed to `feat/distro-gpl-cores`):
 1. **Admin WEB OAuth client — DONE + confirmed e2e.** Web client `1046162067802-9jgcu8nl2fdt0haroq9opr6fe2p31cgl.apps.googleusercontent.com`; backend secret `ADMIN_GOOGLE_CLIENT_ID` set; `VITE_ADMIN_GOOGLE_CLIENT_ID` baked into the admin build (direct-upload, NOT a CF build — dashboard var is a no-op). Logged in, panel works (Users/Analytics/Consoles&Games).

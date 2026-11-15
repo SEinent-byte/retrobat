@@ -59,11 +59,24 @@ public partial class App : Application
         var session = new SessionManager(
             api, new TokenStore(), new GoogleOAuthFlow(config), new ClockGuard());
 
-        // "Mi Cuenta" entry: open the account menu instead of launching a game.
+        // Start-menu "Mi Cuenta" entry (ES passes -account): open the account menu
+        // directly, with no game rom. Refresh the top-left status on close.
+        if (HasFlag(args, "-account"))
+        {
+            var sync = new CatalogSync(api, session, paths);
+            session.LoadPersisted();
+            new AccountMenuWindow(session, sync).ShowDialog();
+            await WriteStatusAfterMenu(session, paths).ConfigureAwait(true);
+            return 0;
+        }
+
+        // Legacy "Mi Cuenta" pseudo-ROM entry: open the account menu instead of a
+        // game. Kept for pre-login first-run seeds; the live sync no longer writes it.
         if (romPath is not null && CatalogSync.IsAccount(romPath))
         {
             var sync = new CatalogSync(api, session, paths);
             new AccountMenuWindow(session, sync).ShowDialog();
+            await WriteStatusAfterMenu(session, paths).ConfigureAwait(true);
             return 0;
         }
 
@@ -200,6 +213,29 @@ public partial class App : Application
             ?? throw new InvalidOperationException("failed to start real launcher");
         await proc.WaitForExitAsync().ConfigureAwait(true);
         return proc.ExitCode;
+    }
+
+    /// <summary>Refresh account_status.txt from the current session after the
+    /// account menu closes (covers login, logout and trial changes).</summary>
+    private static async Task WriteStatusAfterMenu(SessionManager session, RetrobatPaths paths)
+    {
+        LicenseState? status = null;
+        try
+        {
+            if (session.LoadPersisted())
+                status = await session.GetStatusAsync().ConfigureAwait(true);
+        }
+        catch { /* best effort */ }
+        CatalogSync.WriteAccountStatus(paths, status);
+    }
+
+    /// <summary>True when the args contain a standalone flag (no value).</summary>
+    private static bool HasFlag(string[] args, string flag)
+    {
+        foreach (var a in args)
+            if (string.Equals(a, flag, StringComparison.OrdinalIgnoreCase))
+                return true;
+        return false;
     }
 
     /// <summary>Value following a flag in the args, or null.</summary>

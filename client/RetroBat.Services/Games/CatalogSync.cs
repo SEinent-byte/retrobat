@@ -78,39 +78,17 @@ public sealed class CatalogSync(ApiClient api, SessionManager session, RetrobatP
             list.Add(game);
         }
 
-        var accountFolder = PickAccountFolder(catalog.Systems, byFolder);
-        var acctShort = AccountStatusText.Short(status);
-        var acctDesc = AccountStatusText.Full(status, email);
+        // The account no longer rides the game list: it lives in the ES top-left
+        // indicator (account_status.txt) + the Start menu "Mi Cuenta" entry. Write
+        // games only, and strip any account pseudo-ROM an older sync left behind.
         foreach (var (folder, games) in byFolder)
         {
             var dir = paths.RomsDir(folder);
-            if (folder == accountFolder)
-            {
-                var ext = Path.GetExtension(games[0].RomFilename);
-                var acctFile = WriteAccountEntry(dir, ext);
-                WriteGameList(dir, games, acctFile, acctShort, acctDesc);
-            }
-            else
-            {
-                // "Mi Cuenta" lives on a single console; strip any stale copy a
-                // previous (per-console) sync left here so the "Todos los juegos"
-                // auto-collection shows it once.
-                RemoveAccountEntry(dir);
-                WriteGameList(dir, games, null, null, null);
-            }
+            RemoveAccountEntry(dir);
+            WriteGameList(dir, games, null, null, null);
         }
 
-        // The account console carries no games of its own: still surface the
-        // "Mi Cuenta" entry there.
-        if (!byFolder.ContainsKey(accountFolder))
-        {
-            var sys = catalog.Systems.First((s) => s.RetrobatFolder == accountFolder);
-            var ext = sys.Extensions
-                .Select((e) => e.Trim())
-                .FirstOrDefault((e) => e.Length > 0) ?? ".zip";
-            WriteAccountOnly(paths.RomsDir(accountFolder), ext, status, email);
-        }
-
+        WriteAccountStatus(paths, status);
         WriteEsSystems(catalog.Systems);
 
         return catalog.Games.Count;
@@ -167,6 +145,23 @@ public sealed class CatalogSync(ApiClient api, SessionManager session, RetrobatP
 
         var fileName = distro ? "es_systems.cfg" : "es_systems.cfg.dist";
         new XDocument(root).Save(Path.Combine(home, fileName));
+    }
+
+    /// <summary>Write the one-line account status read by the EmulationStation
+    /// top-left account indicator (<c>account_status.txt</c> in the ES home).
+    /// Best effort; a missing home is ignored.</summary>
+    public static void WriteAccountStatus(RetrobatPaths paths, LicenseState? status)
+    {
+        try
+        {
+            var home = paths.EmulationStationHome;
+            if (!Directory.Exists(home))
+                return;
+            var line = "Mi Cuenta — " + AccountStatusText.Short(status);
+            File.WriteAllText(
+                Path.Combine(home, "account_status.txt"), line, Encoding.UTF8);
+        }
+        catch { /* best effort */ }
     }
 
     /// <summary>True when the file is the "Mi Cuenta" account pseudo-ROM.</summary>

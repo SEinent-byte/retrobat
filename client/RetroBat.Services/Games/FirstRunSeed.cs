@@ -33,6 +33,8 @@ public static class FirstRunSeed
             return null;
 
         CatalogSync.WriteAccountOnly(paths.RomsDir(folder), ext);
+        // Seed the top-left indicator too (logged-out state) for a fresh install.
+        CatalogSync.WriteAccountStatus(paths, null);
         return folder;
     }
 
