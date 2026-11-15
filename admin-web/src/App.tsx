@@ -5,7 +5,7 @@ import type {
   SystemDto,
 } from "@retrobat/shared";
 import { AdminApiError, adminApi, getToken, setToken } from "./api";
-import { config } from "./config";
+import { APP_NAME } from "./config";
 import { Login } from "./Login";
 
 type Tab = "users" | "catalog" | "analytics";
@@ -44,7 +44,7 @@ export function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <h1>RGS Admin</h1>
+        <h1>{APP_NAME} Admin</h1>
         <div className="row">
           <span className="muted">{admin.email}</span>
           <button className="btn secondary" onClick={signOut}>

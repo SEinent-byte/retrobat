@@ -9,10 +9,10 @@ namespace RetroBat.Core.Branding;
 public static class BrandInfo
 {
     /// <summary>Short product name shown in window titles and dialogs.</summary>
-    public const string Name = "RGS";
+    public const string Name = "PlayVault";
 
     /// <summary>Full product name for about/installer text.</summary>
-    public const string FullName = "Retro Games Saviour";
+    public const string FullName = "PlayVault";
 
     /// <summary>
     /// This build's version (semver). The updater compares it to the backend's
@@ -25,5 +25,5 @@ public static class BrandInfo
     /// high-water mark. Bumping the brand starts a fresh key, so an existing
     /// install's persisted session is dropped and the user signs in again.
     /// </summary>
-    public const string RegistryKeyPath = @"Software\RGS";
+    public const string RegistryKeyPath = @"Software\PlayVault";
 }

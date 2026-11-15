@@ -1,5 +1,8 @@
 import { API_VERSION } from "@retrobat/shared";
 
+/** Product brand name shown in the admin UI. Single source — change here. */
+export const APP_NAME = "PlayVault";
+
 /** Runtime config from Vite env (set in .env / Pages build vars). */
 export const config = {
   apiBaseUrl:

@@ -71,7 +71,7 @@ public partial class App : Application
         {
             if (!session.LoadPersisted())
             {
-                Fatal("Please open the RetroBat app and sign in first.");
+                Fatal($"Please open {BrandInfo.Name} and sign in first.");
                 return 1;
             }
 

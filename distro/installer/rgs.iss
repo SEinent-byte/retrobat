@@ -1,4 +1,4 @@
-; RGS (Retro Games Saviour) — Inno Setup installer
+; PlayVault — Inno Setup installer
 ; Compile: ISCC /DDistDir="D:\es-build\dist" /DAppVersion="0.1.0" rgs.iss
 ; DistDir must point at the assembled standalone tree (emulationstation.exe at root).
 
@@ -9,9 +9,9 @@
   #define AppVersion "0.1.0"
 #endif
 
-#define AppName "RGS"
-#define AppFullName "Retro Games Saviour"
-#define AppPublisher "RGS"
+#define AppName "PlayVault"
+#define AppFullName "PlayVault"
+#define AppPublisher "PlayVault"
 #define AppExeName "emulationstation.exe"
 
 [Setup]
@@ -21,14 +21,14 @@ AppName={#AppFullName}
 AppVersion={#AppVersion}
 AppPublisher={#AppPublisher}
 VersionInfoVersion={#AppVersion}
-; Install under the system drive root (e.g. C:\RGS) so the emulator tree
+; Install under the system drive root (e.g. C:\PlayVault) so the emulator tree
 ; (RetroArch config, saves, states) stays writable — Program Files is not.
 DefaultDirName={sd}\{#AppName}
 DefaultGroupName={#AppFullName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=admin
 ArchitecturesInstallIn64BitMode=x64compatible
-OutputBaseFilename=RGS-Setup-{#AppVersion}
+OutputBaseFilename=PlayVault-Setup-{#AppVersion}
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern

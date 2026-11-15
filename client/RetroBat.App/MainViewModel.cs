@@ -1,4 +1,5 @@
 using RetroBat.App.Mvvm;
+using RetroBat.Core.Branding;
 using RetroBat.Core.Contracts;
 using RetroBat.Core.Security;
 using RetroBat.Services;
@@ -125,9 +126,9 @@ public sealed class MainViewModel : ViewModelBase
     {
         try
         {
-            SyncInfo = "Syncing library into RetroBat…";
+            SyncInfo = $"Syncing library into {BrandInfo.Name}…";
             var n = await _sync.SyncAsync(state, _session.Email).ConfigureAwait(true);
-            SyncInfo = $"{n} game(s) available in RetroBat. Launch RetroBat to play.";
+            SyncInfo = $"{n} game(s) available in {BrandInfo.Name}. Launch {BrandInfo.Name} to play.";
         }
         catch (Exception ex)
         {
