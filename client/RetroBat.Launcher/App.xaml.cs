@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows;
 using RetroBat.Core.Branding;
 using RetroBat.Core.Contracts;
@@ -191,13 +192,75 @@ public partial class App : Application
         };
         psi.ArgumentList.Add("-L");
         psi.ArgumentList.Add(corePath);
+        // PlayVault RetroArch overrides (borderless, no "RetroArch" title bar),
+        // layered on top of the user's retroarch.cfg. Shipped beside the exe.
+        var overrideCfg = Path.Combine(
+            Path.GetDirectoryName(retroArchExe)!, "playvault.cfg");
+        if (File.Exists(overrideCfg))
+        {
+            psi.ArgumentList.Add("--appendconfig");
+            psi.ArgumentList.Add(overrideCfg);
+        }
         psi.ArgumentList.Add(romPath);
 
         using var proc = Process.Start(psi)
             ?? throw new InvalidOperationException("failed to start RetroArch");
+        // Expand the (borderless) RetroArch window to fill the desktop work area,
+        // so it opens maximized while the Windows taskbar stays visible.
+        _ = MaximizeToWorkAreaAsync(proc);
         await proc.WaitForExitAsync().ConfigureAwait(true);
         return proc.ExitCode;
     }
+
+    /// <summary>Resize the process's main window to the primary monitor work
+    /// area (screen minus the taskbar) once it appears. Best effort.</summary>
+    private static async Task MaximizeToWorkAreaAsync(Process proc)
+    {
+        try
+        {
+            var hwnd = IntPtr.Zero;
+            for (var i = 0; i < 50 && !proc.HasExited; i++)
+            {
+                proc.Refresh();
+                hwnd = proc.MainWindowHandle;
+                if (hwnd != IntPtr.Zero)
+                    break;
+                await Task.Delay(100).ConfigureAwait(true);
+            }
+            if (hwnd == IntPtr.Zero)
+                return;
+            // Let RetroArch finish creating/sizing its own window first.
+            await Task.Delay(400).ConfigureAwait(true);
+            if (SystemParametersInfo(SPI_GETWORKAREA, 0, out var wa, 0))
+                MoveWindow(hwnd, wa.Left, wa.Top, wa.Right - wa.Left, wa.Bottom - wa.Top, true);
+        }
+        catch
+        {
+            // best effort: a normal window is fine if this fails
+        }
+    }
+
+    private const uint SPI_GETWORKAREA = 0x0030;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct Rect
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool MoveWindow(
+        IntPtr hWnd, int x, int y, int width, int height,
+        [MarshalAs(UnmanagedType.Bool)] bool repaint);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SystemParametersInfo(
+        uint action, uint param, out Rect rect, uint winIni);
 
     private static async Task<int> LaunchRealAsync(string realLauncher, string[] args)
     {
