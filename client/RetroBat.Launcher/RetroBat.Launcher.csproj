@@ -9,7 +9,12 @@
     <LangVersion>latest</LangVersion>
     <!-- Installed into RetroBat as emulatorLauncher.exe (proxy). -->
     <AssemblyName>RetroBat.Launcher</AssemblyName>
+    <ApplicationIcon>Assets\toro.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\toro.png" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\RetroBat.Core\RetroBat.Core.csproj" />

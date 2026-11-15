@@ -44,7 +44,10 @@ export function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <h1>{APP_NAME} Admin</h1>
+        <div className="row" style={{ alignItems: "center", gap: 10 }}>
+          <img src="/toro.png" alt="" width={32} height={32} style={{ display: "block" }} />
+          <h1 style={{ margin: 0 }}>{APP_NAME} Admin</h1>
+        </div>
         <div className="row">
           <span className="muted">{admin.email}</span>
           <button className="btn secondary" onClick={signOut}>

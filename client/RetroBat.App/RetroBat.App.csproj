@@ -8,7 +8,12 @@
     <UseWPF>true</UseWPF>
     <LangVersion>latest</LangVersion>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\toro.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\toro.png" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\RetroBat.Core\RetroBat.Core.csproj" />

@@ -7,8 +7,12 @@
         ResizeMode="NoResize" Background="#121212" Topmost="True">
     <Border BorderBrush="#2c2c2c" BorderThickness="1">
         <StackPanel Margin="28">
-            <TextBlock Text="Mi Cuenta"
-                       Foreground="White" FontSize="22" FontWeight="Bold" />
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Image Source="Assets/toro.png" Width="32" Height="32" Margin="0,0,10,0"
+                       RenderOptions.BitmapScalingMode="HighQuality" />
+                <TextBlock Text="Mi Cuenta" VerticalAlignment="Center"
+                           Foreground="White" FontSize="22" FontWeight="Bold" />
+            </StackPanel>
             <TextBlock x:Name="StatusText" Text="Cargando…"
                        Foreground="#C8C8C8" FontSize="14" TextWrapping="Wrap"
                        Margin="0,10,0,18" MinHeight="40" />

@@ -46,7 +46,10 @@ export function Login({ onAuthed }: { onAuthed: (a: AdminIdentity) => void }) {
   return (
     <div className="center">
       <div className="panel" style={{ maxWidth: 440 }}>
-        <h1 style={{ marginTop: 0 }}>{APP_NAME} Admin</h1>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+          <img src="/toro.png" alt="" width={48} height={48} style={{ display: "block" }} />
+          <h1 style={{ margin: 0 }}>{APP_NAME} Admin</h1>
+        </div>
         {config.adminGoogleClientId ? (
           <>
             <p className="muted">Sign in with your admin Google account.</p>
