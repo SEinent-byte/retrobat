@@ -17,7 +17,7 @@ roms/nes/gamelist.xml          single "Mi Cuenta — Sin sesion" entry (pre-logi
 .emulationstation/es_input.cfg default keyboard mapping so ES does not force the
                                first-run "CONFIGURE INPUT / NO GAMEPADS DETECTED"
                                prompt (keyboard-only; no gamepad required)
-.emulationstation/es_settings.cfg ThemeSet=rgs-dark + GamelistViewStyle=basic
+.emulationstation/es_settings.cfg ThemeSet=playvault-dark + GamelistViewStyle=basic
                                (basic view hides the metadata/description panel,
                                which otherwise overlaps the help bar and is
                                unreadable over the colors-only theme)
