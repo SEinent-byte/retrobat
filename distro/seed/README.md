@@ -12,7 +12,7 @@ catalog over the seed, revealing every console and game.
 
 ```
 roms/nes/_mi_cuenta.nes        RBACCT: marker pseudo-ROM (launch proxy -> account menu)
-roms/nes/_mi_cuenta.svg        avatar icon
+roms/nes/_mi_cuenta.png        avatar icon (PlayVault logo)
 roms/nes/gamelist.xml          single "Mi Cuenta — Sin sesion" entry (pre-login strings)
 .emulationstation/es_input.cfg default keyboard mapping so ES does not force the
                                first-run "CONFIGURE INPUT / NO GAMEPADS DETECTED"

@@ -28,17 +28,27 @@ public sealed class CatalogSync(ApiClient api, SessionManager session, RetrobatP
     /// Leading underscore keeps it first in the console's game list.</summary>
     private const string AccountFileBase = "_mi_cuenta";
 
-    /// <summary>Artwork filename for the account entry (EmulationStation renders
-    /// SVG via nanosvg).</summary>
-    private const string AccountImageFile = "_mi_cuenta.svg";
+    /// <summary>Artwork filename for the account entry (the PlayVault logo).</summary>
+    private const string AccountImageFile = "_mi_cuenta.png";
 
-    /// <summary>Simple user-avatar icon shown for the "Mi Cuenta" entry.</summary>
-    private const string AccountImageSvg =
-        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"256\" height=\"256\" viewBox=\"0 0 256 256\">" +
-        "<rect width=\"256\" height=\"256\" rx=\"32\" fill=\"#1f6feb\"/>" +
-        "<circle cx=\"128\" cy=\"100\" r=\"44\" fill=\"#ffffff\"/>" +
-        "<path d=\"M48 216c0-44 36-72 80-72s80 28 80 72z\" fill=\"#ffffff\"/>" +
-        "</svg>";
+    /// <summary>Embedded PlayVault logo bytes, written as the account avatar.
+    /// Loaded once from this assembly's manifest resources.</summary>
+    private static readonly byte[] AccountImagePng = LoadAccountImage();
+
+    private static byte[] LoadAccountImage()
+    {
+        var asm = typeof(CatalogSync).Assembly;
+        var name = asm.GetManifestResourceNames()
+            .FirstOrDefault((n) => n.EndsWith("toro.png", StringComparison.Ordinal));
+        if (name is null)
+            return [];
+        using var s = asm.GetManifestResourceStream(name);
+        if (s is null)
+            return [];
+        using var ms = new MemoryStream();
+        s.CopyTo(ms);
+        return ms.ToArray();
+    }
 
     /// <summary>Fetch the catalog and materialize stubs + gamelists. Returns the
     /// number of game entries written. <paramref name="status"/> is the current
@@ -280,8 +290,11 @@ public sealed class CatalogSync(ApiClient api, SessionManager session, RetrobatP
         if (string.IsNullOrEmpty(ext))
             ext = ".zip";
         var fileName = AccountFileBase + ext;
+        // Drop the avatar from the pre-PNG build if present.
+        TryDelete(Path.Combine(dir, AccountFileBase + ".svg"));
         File.WriteAllText(Path.Combine(dir, fileName), AccountPrefix, Encoding.ASCII);
-        File.WriteAllText(Path.Combine(dir, AccountImageFile), AccountImageSvg, Encoding.UTF8);
+        if (AccountImagePng.Length > 0)
+            File.WriteAllBytes(Path.Combine(dir, AccountImageFile), AccountImagePng);
         return fileName;
     }
 
