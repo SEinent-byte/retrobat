@@ -17,11 +17,18 @@ obligations. Full license texts are in `licenses/texts/`.
 | libretro core: mupen64plus_next (N64) | libretro buildbot stable 1.22.2 | GPLv2 | https://github.com/libretro/mupen64plus-libretro-nx |
 | libretro core: pcsx_rearmed (PlayStation) | libretro buildbot stable 1.22.2 | GPLv2 | https://github.com/libretro/pcsx_rearmed |
 | libretro core: desmume (Nintendo DS) | libretro buildbot stable 1.22.2 | GPLv2 | https://github.com/libretro/desmume |
+| EmulationStation theme: elementerial | @ `e710525` (Aug 2025) | MIT (code + images; fonts OFL/Apache-2.0, icons Apache-2.0) | https://github.com/mluizvitor/es-theme-elementerial |
 
 ## What this means for distribution
 
 - **MIT (EmulationStation):** keep the copyright notice and the MIT text
   (`licenses/texts/MIT-emulationstation.txt`). No further obligation.
+- **MIT (elementerial theme):** keep its `LICENSE.md` shipped inside the
+  theme folder (`.emulationstation/themes/elementerial/LICENSE.md`). Fonts
+  under OFL/Apache-2.0 and icons under Apache-2.0 keep their own notices.
+  ⚠ The theme bundles third-party **console/system brand logos** that are
+  the property of their respective owners; before a commercial release
+  these should be reviewed and, if needed, replaced with neutral artwork.
 - **GPLv2 / GPLv3 (RetroArch and most cores):** the corresponding source
   code must be made available to every recipient. We ship these binaries
   **unmodified** from the libretro buildbot. See `WRITTEN-OFFER.md` and
