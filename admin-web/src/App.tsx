@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import type {
   AdminIdentity,
   AdminUserDto,
-  GameDto,
   SystemDto,
 } from "@retrobat/shared";
 import { AdminApiError, adminApi, getToken, setToken } from "./api";
@@ -172,10 +171,10 @@ function Catalog() {
 
   const [systemId, setSystemId] = useState("");
   const [title, setTitle] = useState("");
-  const [romFilename, setRomFilename] = useState("");
-  const [sizeBytes, setSizeBytes] = useState("0");
+  const [file, setFile] = useState<File | null>(null);
   const [trialEligible, setTrialEligible] = useState(false);
-  const [created, setCreated] = useState<GameDto | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState<string | null>(null);
 
   const load = () =>
     run(async () => {
@@ -188,24 +187,49 @@ function Catalog() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const addGame = () =>
-    run(async () => {
-      setCreated(null);
-      const game = await adminApi.createGame({
-        systemId,
-        title,
-        romFilename,
-        sizeBytes: Number(sizeBytes) || 0,
-        trialEligible,
-      });
-      setCreated(game);
-      setTitle("");
-      setRomFilename("");
-      setSizeBytes("0");
-      setTrialEligible(false);
-    });
-
   const selected = systems.find((s) => s.id === systemId);
+  const fileExt = file ? extOf(file.name) : "";
+  const extAllowed = (s: SystemDto | undefined) =>
+    !!s && s.extensions.some((e) => e.toLowerCase() === fileExt);
+  const extOk = !file || extAllowed(selected);
+
+  // Choosing a file drives everything: auto-pick the console whose extensions
+  // match, and suggest a title from the filename (both stay editable).
+  const onFile = (f: File | null) => {
+    setDone(null);
+    setFile(f);
+    if (!f) return;
+    const fx = extOf(f.name);
+    if (!extAllowed(selected)) {
+      const match = systems.find((s) =>
+        s.extensions.some((e) => e.toLowerCase() === fx));
+      if (match) setSystemId(match.id);
+    }
+    setTitle(titleFromFilename(f.name));
+  };
+
+  const addAndUpload = () =>
+    run(async () => {
+      if (!file || !systemId) return;
+      setDone(null);
+      setBusy(true);
+      try {
+        const game = await adminApi.createGame({
+          systemId,
+          title: title.trim() || titleFromFilename(file.name),
+          romFilename: file.name,
+          sizeBytes: file.size, // real length is re-measured server-side on upload
+          trialEligible,
+        });
+        const res = await adminApi.uploadRom(game.id, file);
+        setDone(`✓ "${game.title}" subido a ${game.systemId} — ${fmtBytes(res.sizeBytes)}.`);
+        setTitle("");
+        setFile(null);
+        setTrialEligible(false);
+      } finally {
+        setBusy(false);
+      }
+    });
 
   return (
     <>
@@ -238,12 +262,16 @@ function Catalog() {
       <div className="panel">
         <h3 style={{ marginTop: 0 }}>Add game</h3>
         {error && <div className="error">{error}</div>}
-        {created && (
-          <div className="muted">
-            Added "{created.title}" ({created.id}). Upload its ROM below.
-          </div>
-        )}
+        {done && <div className="muted">{done}</div>}
         <div className="row" style={{ alignItems: "flex-end" }}>
+          <div className="field">
+            <label>ROM / ISO file</label>
+            <input
+              type="file"
+              key={file ? "has" : "empty"}
+              onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+            />
+          </div>
           <div className="field">
             <label>Console</label>
             <select value={systemId} onChange={(e) => setSystemId(e.target.value)}>
@@ -254,47 +282,45 @@ function Catalog() {
           </div>
           <div className="field">
             <label>Title</label>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} />
-          </div>
-          <div className="field">
-            <label>ROM filename {selected && <span>({selected.extensions.join(" ")})</span>}</label>
-            <input value={romFilename} onChange={(e) => setRomFilename(e.target.value)} placeholder="game.nes" />
-          </div>
-          <div className="field">
-            <label>Size (bytes)</label>
-            <input value={sizeBytes} onChange={(e) => setSizeBytes(e.target.value)} />
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="auto from filename" />
           </div>
           <div className="field">
             <label>Trial</label>
             <input type="checkbox" checked={trialEligible} onChange={(e) => setTrialEligible(e.target.checked)} />
           </div>
-          <button className="btn" onClick={addGame} disabled={!systemId || !title || !romFilename}>
-            Add
+          <button
+            className="btn"
+            onClick={addAndUpload}
+            disabled={!systemId || !file || !extOk || busy}
+          >
+            {busy ? "Subiendo…" : "Add & upload"}
           </button>
         </div>
+        {file && !extOk && (
+          <div className="error">
+            La extensión {fileExt || "(ninguna)"} no corresponde a {selected?.name}.
+            {selected && <> Permitidas: {selected.extensions.join(" ")}.</>}
+          </div>
+        )}
         <p className="muted" style={{ fontSize: 12 }}>
-          Registering a game only creates its catalog row. Upload the ROM file below.
+          Elige el archivo: la consola y el título se autocompletan; el tamaño real se mide al subir.
+          Un solo paso crea el juego y sube la ROM a R2.
         </p>
       </div>
 
-      <UploadRom created={created} />
+      <ReplaceRom />
     </>
   );
 }
 
-/* ----------------------------- Upload ROM ----------------------------- */
+/* --------------------- Replace ROM (advanced) --------------------- */
 
-function UploadRom({ created }: { created: GameDto | null }) {
+function ReplaceRom() {
   const { error, run } = useError();
   const [gameId, setGameId] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-
-  // Prefill the id when a game was just created in the panel above.
-  useEffect(() => {
-    if (created) setGameId(created.id);
-  }, [created]);
 
   const upload = () =>
     run(async () => {
@@ -311,11 +337,13 @@ function UploadRom({ created }: { created: GameDto | null }) {
     });
 
   return (
-    <div className="panel">
-      <h3 style={{ marginTop: 0 }}>Upload ROM</h3>
+    <details className="panel">
+      <summary style={{ cursor: "pointer", fontWeight: 600 }}>
+        Replace ROM of an existing game (advanced)
+      </summary>
       {error && <div className="error">{error}</div>}
       {done && <div className="muted">{done}</div>}
-      <div className="row" style={{ alignItems: "flex-end" }}>
+      <div className="row" style={{ alignItems: "flex-end", marginTop: 12 }}>
         <div className="field">
           <label>Game id</label>
           <input
@@ -334,9 +362,9 @@ function UploadRom({ created }: { created: GameDto | null }) {
         </button>
       </div>
       <p className="muted" style={{ fontSize: 12 }}>
-        The file is stored at the game's R2 key; its registered size is updated to the real length.
+        Overwrites the ROM at an existing game's R2 key; its size is updated to the real length.
       </p>
-    </div>
+    </details>
   );
 }
 
@@ -411,6 +439,18 @@ function fmtDate(ms: number | null): string {
 }
 function fmtTime(ms: number): string {
   return new Date(ms).toLocaleTimeString();
+}
+function extOf(name: string): string {
+  const i = name.lastIndexOf(".");
+  return i >= 0 ? name.slice(i).toLowerCase() : "";
+}
+function titleFromFilename(name: string): string {
+  return name
+    .replace(/\.[^.]+$/, "") // drop extension
+    .replace(/[[(][^\])]*[\])]/g, " ") // drop (..) / [..] release tags
+    .replace(/[._]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 function fmtBytes(n: number): string {
   if (n < 1024) return `${n} B`;
