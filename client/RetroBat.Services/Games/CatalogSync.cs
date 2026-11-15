@@ -68,14 +68,37 @@ public sealed class CatalogSync(ApiClient api, SessionManager session, RetrobatP
             list.Add(game);
         }
 
+        var accountFolder = PickAccountFolder(catalog.Systems, byFolder);
         var acctShort = AccountStatusText.Short(status);
         var acctDesc = AccountStatusText.Full(status, email);
         foreach (var (folder, games) in byFolder)
         {
             var dir = paths.RomsDir(folder);
-            var ext = Path.GetExtension(games[0].RomFilename);
-            var acctFile = WriteAccountEntry(dir, ext);
-            WriteGameList(dir, games, acctFile, acctShort, acctDesc);
+            if (folder == accountFolder)
+            {
+                var ext = Path.GetExtension(games[0].RomFilename);
+                var acctFile = WriteAccountEntry(dir, ext);
+                WriteGameList(dir, games, acctFile, acctShort, acctDesc);
+            }
+            else
+            {
+                // "Mi Cuenta" lives on a single console; strip any stale copy a
+                // previous (per-console) sync left here so the "Todos los juegos"
+                // auto-collection shows it once.
+                RemoveAccountEntry(dir);
+                WriteGameList(dir, games, null, null, null);
+            }
+        }
+
+        // The account console carries no games of its own: still surface the
+        // "Mi Cuenta" entry there.
+        if (!byFolder.ContainsKey(accountFolder))
+        {
+            var sys = catalog.Systems.First((s) => s.RetrobatFolder == accountFolder);
+            var ext = sys.Extensions
+                .Select((e) => e.Trim())
+                .FirstOrDefault((e) => e.Length > 0) ?? ".zip";
+            WriteAccountOnly(paths.RomsDir(accountFolder), ext, status, email);
         }
 
         WriteEsSystems(catalog.Systems);
@@ -192,6 +215,39 @@ public sealed class CatalogSync(ApiClient api, SessionManager session, RetrobatP
         }
     }
 
+    /// <summary>Choose the single console that carries the "Mi Cuenta" entry, so
+    /// it shows once rather than per console. Prefers the "nes" welcome console
+    /// used by the first-run seed; falls back to the first catalog system, then
+    /// any synced folder.</summary>
+    private static string PickAccountFolder(
+        IReadOnlyList<SystemDto> systems, Dictionary<string, List<GameDto>> byFolder)
+    {
+        const string preferred = "nes";
+        if (systems.Any((s) => s.RetrobatFolder == preferred))
+            return preferred;
+        if (systems.Count > 0)
+            return systems[0].RetrobatFolder;
+        return byFolder.Keys.FirstOrDefault() ?? preferred;
+    }
+
+    /// <summary>Delete any "Mi Cuenta" pseudo-ROM + icon left in a console folder
+    /// by an earlier per-console sync. Best effort.</summary>
+    private static void RemoveAccountEntry(string dir)
+    {
+        try
+        {
+            foreach (var f in Directory.EnumerateFiles(dir, AccountFileBase + ".*"))
+                TryDelete(f);
+        }
+        catch { /* best effort */ }
+    }
+
+    private static void TryDelete(string path)
+    {
+        try { File.Delete(path); }
+        catch { /* best effort */ }
+    }
+
     private static void WriteStubIfAbsent(string path, string gameId)
     {
         // Preserve a real ROM already downloaded here; only (re)write stubs.
@@ -232,19 +288,23 @@ public sealed class CatalogSync(ApiClient api, SessionManager session, RetrobatP
     private static void WriteGameList(
         string dir,
         IReadOnlyList<GameDto> games,
-        string accountFile,
-        string accountShort,
-        string accountDesc)
+        string? accountFile,
+        string? accountShort,
+        string? accountDesc)
     {
         var list = new XElement("gameList");
 
-        // "Mi Cuenta" first so it sits at the top of the console's list.
-        list.Add(new XElement(
-            "game",
-            new XElement("path", "./" + accountFile),
-            new XElement("name", "Mi Cuenta — " + accountShort),
-            new XElement("desc", accountDesc),
-            new XElement("image", "./" + AccountImageFile)));
+        // "Mi Cuenta" first so it sits at the top of the console's list. Only the
+        // chosen account console gets it (accountFile null = games only).
+        if (accountFile is not null)
+        {
+            list.Add(new XElement(
+                "game",
+                new XElement("path", "./" + accountFile),
+                new XElement("name", "Mi Cuenta — " + accountShort),
+                new XElement("desc", accountDesc),
+                new XElement("image", "./" + AccountImageFile)));
+        }
 
         foreach (var g in games)
         {
