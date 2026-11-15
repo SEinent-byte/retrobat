@@ -45,7 +45,7 @@ export function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <h1>RetroBat Admin</h1>
+        <h1>RGS Admin</h1>
         <div className="row">
           <span className="muted">{admin.email}</span>
           <button className="btn secondary" onClick={signOut}>

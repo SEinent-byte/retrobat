@@ -46,7 +46,7 @@ export function Login({ onAuthed }: { onAuthed: (a: AdminIdentity) => void }) {
   return (
     <div className="center">
       <div className="panel" style={{ maxWidth: 440 }}>
-        <h1 style={{ marginTop: 0 }}>RetroBat Admin</h1>
+        <h1 style={{ marginTop: 0 }}>RGS Admin</h1>
         {config.adminGoogleClientId ? (
           <>
             <p className="muted">Sign in with your admin Google account.</p>
