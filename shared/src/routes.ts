@@ -7,6 +7,8 @@
 export const HttpMethod = {
   GET: "GET",
   POST: "POST",
+  PATCH: "PATCH",
+  DELETE: "DELETE",
 } as const;
 export type HttpMethod = (typeof HttpMethod)[keyof typeof HttpMethod];
 
@@ -77,7 +79,18 @@ export const ROUTES = {
   },
   adminListSystems: { method: "GET", path: "/admin/systems", auth: "admin" },
   adminUpsertSystem: { method: "POST", path: "/admin/systems", auth: "admin" },
+  adminListGames: { method: "GET", path: "/admin/games", auth: "admin" },
   adminCreateGame: { method: "POST", path: "/admin/games", auth: "admin" },
+  adminUpdateGame: {
+    method: "PATCH",
+    path: "/admin/games/:id",
+    auth: "admin",
+  },
+  adminDeleteGame: {
+    method: "DELETE",
+    path: "/admin/games/:id",
+    auth: "admin",
+  },
   adminUploadRom: {
     method: "POST",
     path: "/admin/games/:id/rom",

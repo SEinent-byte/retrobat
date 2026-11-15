@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type {
   AdminIdentity,
   AdminUserDto,
+  GameDto,
   SystemDto,
 } from "@retrobat/shared";
 import { AdminApiError, adminApi, getToken, setToken } from "./api";
@@ -178,6 +179,7 @@ function Catalog() {
   const [trialEligible, setTrialEligible] = useState(false);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<string | null>(null);
+  const [gamesVersion, setGamesVersion] = useState(0);
 
   const load = () =>
     run(async () => {
@@ -229,6 +231,7 @@ function Catalog() {
         setTitle("");
         setFile(null);
         setTrialEligible(false);
+        setGamesVersion((v) => v + 1);
       } finally {
         setBusy(false);
       }
@@ -311,9 +314,174 @@ function Catalog() {
         </p>
       </div>
 
+      <GamesManager systems={systems} reloadKey={gamesVersion} />
+
       <ReplaceRom />
     </>
   );
+}
+
+/* --------------------------- Games manager --------------------------- */
+
+function GamesManager({
+  systems,
+  reloadKey,
+}: {
+  systems: SystemDto[];
+  reloadKey: number;
+}) {
+  const { error, run } = useError();
+  const [games, setGames] = useState<GameDto[]>([]);
+  const [filter, setFilter] = useState("");
+
+  const load = () =>
+    run(async () => {
+      setGames((await adminApi.listGames(filter || undefined)).games);
+    });
+  useEffect(() => {
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter, reloadKey]);
+
+  const sysName = (id: string) => systems.find((s) => s.id === id)?.name ?? id;
+
+  const rename = (g: GameDto) =>
+    run(async () => {
+      const title = prompt("Nuevo título:", g.title);
+      if (title == null || !title.trim() || title.trim() === g.title) return;
+      await adminApi.updateGame(g.id, { title: title.trim() });
+      await load();
+    });
+
+  const toggleTrial = (g: GameDto) =>
+    run(async () => {
+      await adminApi.updateGame(g.id, { trialEligible: !g.trialEligible });
+      await load();
+    });
+
+  const move = (g: GameDto, systemId: string) =>
+    run(async () => {
+      if (systemId === g.systemId) return;
+      await adminApi.updateGame(g.id, { systemId });
+      await load();
+    });
+
+  const free24h = (g: GameDto) =>
+    run(async () => {
+      const now = Date.now();
+      await adminApi.setFreeWindow(g.id, {
+        freeFrom: now,
+        freeUntil: now + 24 * 60 * 60 * 1000,
+      });
+      await load();
+    });
+
+  const clearFree = (g: GameDto) =>
+    run(async () => {
+      await adminApi.setFreeWindow(g.id, { freeFrom: null, freeUntil: null });
+      await load();
+    });
+
+  const del = (g: GameDto) =>
+    run(async () => {
+      if (
+        !confirm(
+          `¿Borrar "${g.title}"? Elimina el juego y su ROM en R2. Irreversible.`,
+        )
+      )
+        return;
+      await adminApi.deleteGame(g.id);
+      await load();
+    });
+
+  return (
+    <div className="panel">
+      <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+        <h3 style={{ margin: 0 }}>Games</h3>
+        <div className="row" style={{ alignItems: "center", gap: 8 }}>
+          <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+            <option value="">All consoles</option>
+            {systems.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+          <button className="btn secondary" onClick={load}>Refresh</button>
+        </div>
+      </div>
+      {error && <div className="error">{error}</div>}
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Console</th>
+            <th>Size</th>
+            <th>Trial</th>
+            <th>Free window</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {games.map((g) => (
+            <tr key={g.id}>
+              <td>
+                {g.title}
+                <button
+                  className="btn secondary"
+                  style={{ marginLeft: 8 }}
+                  onClick={() => rename(g)}
+                >
+                  Rename
+                </button>
+                <div className="muted" style={{ fontSize: 11 }}>{g.romFilename}</div>
+              </td>
+              <td>
+                <select value={g.systemId} onChange={(e) => move(g, e.target.value)}>
+                  {systems.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </td>
+              <td className="muted">{fmtBytes(g.sizeBytes)}</td>
+              <td>
+                <input
+                  type="checkbox"
+                  checked={g.trialEligible}
+                  onChange={() => toggleTrial(g)}
+                />
+              </td>
+              <td className="muted">
+                {freeWindowLabel(g)}{" "}
+                <button className="btn secondary" onClick={() => free24h(g)}>24h</button>
+                {(g.freeFrom != null || g.freeUntil != null) && (
+                  <button className="btn secondary" onClick={() => clearFree(g)}>Clear</button>
+                )}
+              </td>
+              <td>
+                <button className="btn secondary" onClick={() => del(g)}>Delete</button>
+              </td>
+            </tr>
+          ))}
+          {games.length === 0 && (
+            <tr>
+              <td colSpan={6} className="muted">No games.</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+      <p className="muted" style={{ fontSize: 12 }}>
+        Trial = visible en cuentas de prueba. Free window = disponible para todos durante ese lapso (24h desde ahora).
+        Mover de consola revalida la extensión y reubica la ROM en R2.
+      </p>
+    </div>
+  );
+}
+
+function freeWindowLabel(g: GameDto): string {
+  if (g.freeFrom == null && g.freeUntil == null) return "—";
+  const now = Date.now();
+  if (g.freeUntil != null && g.freeUntil < now) return "expired";
+  if (g.freeFrom != null && g.freeFrom > now) return `from ${fmtDate(g.freeFrom)}`;
+  return g.freeUntil != null ? `until ${fmtTime(g.freeUntil)}` : "active";
 }
 
 /* --------------------- Replace ROM (advanced) --------------------- */

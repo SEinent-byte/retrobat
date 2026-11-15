@@ -2,10 +2,13 @@
 import type {
   AdminAuthResponse,
   AdminCreateGameResponse,
+  AdminDeleteGameResponse,
   AdminFreeWindowResponse,
   AdminGrantTimeResponse,
+  AdminListGamesResponse,
   AdminListSystemsResponse,
   AdminListUsersResponse,
+  AdminUpdateGameResponse,
   AdminNowPlayingResponse,
   AdminPromoteResponse,
   AdminTopGamesResponse,
@@ -21,6 +24,7 @@ import {
   freeWindowSchema,
   grantTimeSchema,
   promoteAdminSchema,
+  updateGameSchema,
   upsertSystemSchema,
 } from "../lib/validation.js";
 import { requireAdmin } from "../middleware/admin.js";
@@ -28,13 +32,16 @@ import { jsonBody } from "../middleware/validate.js";
 import {
   adminAuthGoogle,
   createGame,
+  deleteGame,
   grantTime,
+  listGames,
   listSystems,
   listUsers,
   nowPlaying,
   promoteAdmin,
   setFreeWindow,
   topGames,
+  updateGame,
   uploadRom,
   upsertSystem,
 } from "../services/admin.js";
@@ -98,6 +105,14 @@ adminRoutes.post("/systems", jsonBody(upsertSystemSchema), async (c) => {
   return c.json(res);
 });
 
+adminRoutes.get("/games", async (c) => {
+  const res: AdminListGamesResponse = await listGames(
+    db(c.env.DB),
+    c.req.query("systemId"),
+  );
+  return c.json(res);
+});
+
 adminRoutes.post("/games", jsonBody(createGameSchema), async (c) => {
   const res: AdminCreateGameResponse = await createGame(
     db(c.env.DB),
@@ -105,6 +120,27 @@ adminRoutes.post("/games", jsonBody(createGameSchema), async (c) => {
     c.req.valid("json"),
   );
   return c.json(res, 201);
+});
+
+adminRoutes.patch("/games/:id", jsonBody(updateGameSchema), async (c) => {
+  const res: AdminUpdateGameResponse = await updateGame(
+    db(c.env.DB),
+    c.env,
+    c.get("adminId"),
+    c.req.param("id"),
+    c.req.valid("json"),
+  );
+  return c.json(res);
+});
+
+adminRoutes.delete("/games/:id", async (c) => {
+  const res: AdminDeleteGameResponse = await deleteGame(
+    db(c.env.DB),
+    c.env,
+    c.get("adminId"),
+    c.req.param("id"),
+  );
+  return c.json(res);
 });
 
 // Raw ROM upload: body is the file (octet-stream), not JSON, so no jsonBody.

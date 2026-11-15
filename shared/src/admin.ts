@@ -141,6 +141,39 @@ export interface AdminCreateGameRequest {
 export type AdminCreateGameResponse = GameDto;
 
 /**
+ * GET /admin/games — full catalog for admin management, newest systems first
+ * then title. Unlike the user-facing GET /catalog this is NOT license-filtered
+ * and returns every game. Optional `?systemId=` narrows to one console.
+ */
+export interface AdminListGamesQuery {
+  systemId?: string;
+}
+export interface AdminListGamesResponse {
+  games: GameDto[];
+}
+
+/**
+ * PATCH /admin/games/:id — edit a registered game. Every field is optional;
+ * only the provided fields change. Changing `systemId` re-validates the ROM
+ * extension against the new console and moves the R2 object to the new key.
+ */
+export interface AdminUpdateGameRequest {
+  title?: string;
+  trialEligible?: boolean;
+  systemId?: string;
+}
+export type AdminUpdateGameResponse = GameDto;
+
+/**
+ * DELETE /admin/games/:id — remove a game, its R2 object, and its play
+ * events. Irreversible.
+ */
+export interface AdminDeleteGameResponse {
+  id: string;
+  deleted: true;
+}
+
+/**
  * POST /admin/games/:id/rom — upload the ROM bytes for a registered game to
  * R2 (SPEC §10). Request body is the raw ROM file (application/octet-stream),
  * not JSON. The server writes it to the game's `r2Key` and updates

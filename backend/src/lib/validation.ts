@@ -84,6 +84,18 @@ export const createGameSchema = z.object({
   trialEligible: z.boolean(),
 });
 
+export const updateGameSchema = z
+  .object({
+    title: z.string().min(1).optional(),
+    trialEligible: z.boolean().optional(),
+    systemId: z.string().min(1).optional(),
+  })
+  .refine(
+    (v) =>
+      v.title != null || v.trialEligible != null || v.systemId != null,
+    { message: "at least one field required" },
+  );
+
 export const freeWindowSchema = z.object({
   freeFrom: z.number().int().positive().nullable(),
   freeUntil: z.number().int().positive().nullable(),

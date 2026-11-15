@@ -7,7 +7,10 @@ import { and, desc, eq, isNull, like, sql } from "drizzle-orm";
 import {
   type AdminAuthResponse,
   type AdminCreateGameRequest,
+  type AdminDeleteGameResponse,
   type AdminFreeWindowRequest,
+  type AdminListGamesResponse,
+  type AdminUpdateGameRequest,
   type AdminGrantTimeRequest,
   type AdminGrantTimeResponse,
   type AdminListUsersResponse,
@@ -334,6 +337,122 @@ export async function uploadRom(
     sizeBytes,
     etag: put.etag,
   };
+}
+
+/**
+ * GET /admin/games — the full catalog for admin management (NOT license
+ * filtered, unlike the user-facing GET /catalog). Optional `systemId` narrows
+ * to one console. Ordered by system then title.
+ */
+export async function listGames(
+  dbc: Db,
+  systemId?: string,
+): Promise<AdminListGamesResponse> {
+  const where = systemId ? eq(schema.games.systemId, systemId) : undefined;
+  const rows = await dbc
+    .select()
+    .from(schema.games)
+    .where(where)
+    .orderBy(schema.games.systemId, schema.games.title)
+    .all();
+  return { games: rows.map(toGameDto) };
+}
+
+/**
+ * PATCH /admin/games/:id — edit a game's metadata. Only provided fields
+ * change. Changing `systemId` re-validates the ROM extension for the new
+ * console and moves the R2 object (if present) to the new key.
+ */
+export async function updateGame(
+  dbc: Db,
+  env: Env,
+  adminId: string,
+  gameId: string,
+  body: AdminUpdateGameRequest,
+  now = Date.now(),
+): Promise<GameDto> {
+  const game = await dbc
+    .select()
+    .from(schema.games)
+    .where(eq(schema.games.id, gameId))
+    .get();
+  if (!game) throw fail.notFound("game not found");
+
+  const patch: Partial<typeof schema.games.$inferInsert> = {};
+  if (body.title != null) patch.title = body.title;
+  if (body.trialEligible != null) patch.trialEligible = body.trialEligible;
+
+  if (body.systemId != null && body.systemId !== game.systemId) {
+    const system = await dbc
+      .select()
+      .from(schema.systems)
+      .where(eq(schema.systems.id, body.systemId))
+      .get();
+    if (!system) {
+      throw fail.badRequest("unknown system", { systemId: "not found" });
+    }
+    const ext = fileExt(game.romFilename);
+    const allowed = normalizeExtensions(system.extensions.split(","));
+    if (!ext || !allowed.includes(ext)) {
+      throw fail.badRequest(
+        `extension ${ext || "(none)"} not allowed for ${system.id}`,
+        { systemId: `allowed: ${allowed.join(", ")}` },
+      );
+    }
+    patch.systemId = body.systemId;
+
+    const newR2Key = `roms/${system.retrobatFolder}/${game.romFilename}`;
+    if (newR2Key !== game.r2Key) {
+      const obj = await env.ROMS.get(game.r2Key);
+      if (obj) {
+        await env.ROMS.put(newR2Key, obj.body, {
+          httpMetadata: obj.httpMetadata,
+        });
+        await env.ROMS.delete(game.r2Key);
+      }
+      patch.r2Key = newR2Key;
+    }
+  }
+
+  if (Object.keys(patch).length === 0) return toGameDto(game);
+
+  await dbc.update(schema.games).set(patch).where(eq(schema.games.id, gameId));
+  await audit(dbc, adminId, "update_game", gameId, body, now);
+  const row = await dbc
+    .select()
+    .from(schema.games)
+    .where(eq(schema.games.id, gameId))
+    .get();
+  return toGameDto(row!);
+}
+
+/**
+ * DELETE /admin/games/:id — remove the game, its R2 object, and its play
+ * events (play_events FK the game). Irreversible.
+ */
+export async function deleteGame(
+  dbc: Db,
+  env: Env,
+  adminId: string,
+  gameId: string,
+  now = Date.now(),
+): Promise<AdminDeleteGameResponse> {
+  const game = await dbc
+    .select()
+    .from(schema.games)
+    .where(eq(schema.games.id, gameId))
+    .get();
+  if (!game) throw fail.notFound("game not found");
+
+  // R2 delete is idempotent: no error if the object was never uploaded.
+  await env.ROMS.delete(game.r2Key);
+  await dbc
+    .delete(schema.playEvents)
+    .where(eq(schema.playEvents.gameId, gameId));
+  await dbc.delete(schema.games).where(eq(schema.games.id, gameId));
+
+  await audit(dbc, adminId, "delete_game", gameId, { r2Key: game.r2Key }, now);
+  return { id: gameId, deleted: true };
 }
 
 export async function setFreeWindow(

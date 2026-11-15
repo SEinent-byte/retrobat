@@ -2,16 +2,20 @@ import type {
   AdminAuthResponse,
   AdminCreateGameRequest,
   AdminCreateGameResponse,
+  AdminDeleteGameResponse,
   AdminFreeWindowRequest,
   AdminFreeWindowResponse,
   AdminGrantTimeRequest,
   AdminGrantTimeResponse,
+  AdminListGamesResponse,
   AdminListSystemsResponse,
   AdminListUsersResponse,
   AdminNowPlayingResponse,
   AdminPromoteRequest,
   AdminPromoteResponse,
   AdminTopGamesResponse,
+  AdminUpdateGameRequest,
+  AdminUpdateGameResponse,
   AdminUploadRomResponse,
   AdminUpsertSystemRequest,
   AdminUpsertSystemResponse,
@@ -49,7 +53,7 @@ export class AdminApiError extends Error {
 }
 
 async function request<T>(
-  method: "GET" | "POST",
+  method: "GET" | "POST" | "PATCH" | "DELETE",
   path: string,
   body?: unknown,
   auth = true,
@@ -144,8 +148,20 @@ export const adminApi = {
   upsertSystem: (body: AdminUpsertSystemRequest) =>
     request<AdminUpsertSystemResponse>("POST", "/admin/systems", body),
 
+  listGames: (systemId?: string) =>
+    request<AdminListGamesResponse>(
+      "GET",
+      `/admin/games${systemId ? `?systemId=${encodeURIComponent(systemId)}` : ""}`,
+    ),
+
   createGame: (body: AdminCreateGameRequest) =>
     request<AdminCreateGameResponse>("POST", "/admin/games", body),
+
+  updateGame: (gameId: string, body: AdminUpdateGameRequest) =>
+    request<AdminUpdateGameResponse>("PATCH", `/admin/games/${gameId}`, body),
+
+  deleteGame: (gameId: string) =>
+    request<AdminDeleteGameResponse>("DELETE", `/admin/games/${gameId}`),
 
   uploadRom: (gameId: string, file: File) =>
     requestBinary<AdminUploadRomResponse>("POST", `/admin/games/${gameId}/rom`, file),
