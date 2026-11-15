@@ -21,7 +21,7 @@ app.use(
   "/admin/*",
   cors({
     origin: "*",
-    allowMethods: ["GET", "POST", "OPTIONS"],
+    allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allowHeaders: ["Authorization", "Content-Type", "X-Api-Version"],
   }),
 );
