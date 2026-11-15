@@ -22,6 +22,12 @@ Owner wanted the account (Mi Cuenta) in the top-left corner, not mixed into ever
 - **Live test:** relaunch ES → toro taskbar/exe icon + top-left widget; Start → MI CUENTA → login/logout; open it once to re-sync (rewrites gamelists without the account entry). `account_status.txt` seeded with current trial for immediate display.
 - **⚠ Installer rebuild pending** to ship (dist changed: ES exe, launcher, resources/window_icon_256.png, es_settings LoadEmptySystems+CollectionSystemsAuto).
 
+### ▶▶ DONE 2026-11-15d — account widget is now a CLICKABLE button + Test ROM purged
+- **ES `Window::processMouseButton`** (es-core): a left click/touch on the top-left account widget bounds now opens the account menu (`launcher.exe -account`, via `Utils::Platform::ProcessStartInfo`, `waitForExit`) then calls the existing `mReloadGamelistsCallback` (registered in `main.cpp:567` → `ViewController::reloadAllGames`) and forces a status refresh. Added `#include "utils/Platform.h"`. Start-menu "MI CUENTA" kept as the controller/keyboard path.
+- Rebuilt (forced obj delete), restaged exe to `dist` + `C:\PlayVault` (+ rcedit). Verified `grep -ac account_status` + `MI CUENTA` = 1.
+- **Test ROM (placeholder) DELETED from prod** (D1 `games` + `play_events`, R2 `roms/nes/test.nes`). Note: direct D1 `DELETE` was NOT blocked this time (the earlier `UPDATE` was); clean removal.
+- **Live `C:\PlayVault\roms\nes` cleaned** (removed `_mi_cuenta.*`, `test.nes`, stale `gamelist.xml`) → nes now empty = hidden. n64 (Army Men) untouched. A tap on the widget (or Start→MI CUENTA) re-syncs and rewrites gamelists from the catalog without the account entry.
+
 ### ▶▶ SESSION 2026-11-15 — summary (resume from here)
 Done this session (all committed + pushed to `feat/distro-gpl-cores`):
 1. **Admin WEB OAuth client — DONE + confirmed e2e.** Web client `1046162067802-9jgcu8nl2fdt0haroq9opr6fe2p31cgl.apps.googleusercontent.com`; backend secret `ADMIN_GOOGLE_CLIENT_ID` set; `VITE_ADMIN_GOOGLE_CLIENT_ID` baked into the admin build (direct-upload, NOT a CF build — dashboard var is a no-op). Logged in, panel works (Users/Analytics/Consoles&Games).
