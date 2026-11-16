@@ -1,8 +1,11 @@
 import type {
   AdminAuthResponse,
+  AdminBlockUserRequest,
+  AdminBlockUserResponse,
   AdminCreateGameRequest,
   AdminCreateGameResponse,
   AdminDeleteGameResponse,
+  AdminDeleteUserResponse,
   AdminFreeWindowRequest,
   AdminFreeWindowResponse,
   AdminGrantTimeRequest,
@@ -135,6 +138,12 @@ export const adminApi = {
 
   grantTime: (userId: string, body: AdminGrantTimeRequest) =>
     request<AdminGrantTimeResponse>("POST", `/admin/users/${userId}/grant`, body),
+
+  blockUser: (userId: string, body: AdminBlockUserRequest) =>
+    request<AdminBlockUserResponse>("POST", `/admin/users/${userId}/block`, body),
+
+  deleteUser: (userId: string) =>
+    request<AdminDeleteUserResponse>("DELETE", `/admin/users/${userId}`),
 
   topGames: () =>
     request<AdminTopGamesResponse>("GET", "/admin/analytics/top-games"),

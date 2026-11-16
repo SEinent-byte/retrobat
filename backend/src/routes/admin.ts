@@ -1,8 +1,10 @@
 /** /admin/* routes (SPEC §10, §11). Google-gated admin sessions. */
 import type {
   AdminAuthResponse,
+  AdminBlockUserResponse,
   AdminCreateGameResponse,
   AdminDeleteGameResponse,
+  AdminDeleteUserResponse,
   AdminFreeWindowResponse,
   AdminGrantTimeResponse,
   AdminListGamesResponse,
@@ -20,6 +22,7 @@ import { db } from "../db/client.js";
 import type { AppBindings } from "../env.js";
 import {
   adminAuthSchema,
+  blockUserSchema,
   createGameSchema,
   freeWindowSchema,
   grantTimeSchema,
@@ -31,8 +34,10 @@ import { requireAdmin } from "../middleware/admin.js";
 import { jsonBody } from "../middleware/validate.js";
 import {
   adminAuthGoogle,
+  blockUser,
   createGame,
   deleteGame,
+  deleteUser,
   grantTime,
   listGames,
   listSystems,
@@ -77,6 +82,25 @@ adminRoutes.post("/users/:id/grant", jsonBody(grantTimeSchema), async (c) => {
     c.get("adminId"),
     c.req.param("id"),
     c.req.valid("json"),
+  );
+  return c.json(res);
+});
+
+adminRoutes.post("/users/:id/block", jsonBody(blockUserSchema), async (c) => {
+  const res: AdminBlockUserResponse = await blockUser(
+    db(c.env.DB),
+    c.get("adminId"),
+    c.req.param("id"),
+    c.req.valid("json"),
+  );
+  return c.json(res);
+});
+
+adminRoutes.delete("/users/:id", async (c) => {
+  const res: AdminDeleteUserResponse = await deleteUser(
+    db(c.env.DB),
+    c.get("adminId"),
+    c.req.param("id"),
   );
   return c.json(res);
 });

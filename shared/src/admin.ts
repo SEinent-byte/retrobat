@@ -80,6 +80,31 @@ export interface AdminGrantTimeResponse {
   trialExpiresAt: EpochMs | null;
 }
 
+/**
+ * POST /admin/users/:id/block — hard block or unblock a user. A blocked user
+ * is denied auth refresh, license status, downloads and play. Reversible.
+ */
+export interface AdminBlockUserRequest {
+  blocked: boolean;
+  /** Free-text reason, stored in the audit log. */
+  reason?: string;
+}
+export interface AdminBlockUserResponse {
+  userId: string;
+  blocked: boolean;
+}
+
+/**
+ * DELETE /admin/users/:id — permanently remove a user and their data
+ * (trials, subscriptions, play events). When `releaseDevice` is true the
+ * trial record tied to the user's device is also removed, so the same
+ * hardware can start a fresh trial on re-registration (overrides anti-farm).
+ */
+export interface AdminDeleteUserResponse {
+  userId: string;
+  releasedDevice: boolean;
+}
+
 /* --------------------------- analytics --------------------------- */
 
 /** GET /admin/analytics/top-games — most played (SPEC §10). */

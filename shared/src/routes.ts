@@ -67,6 +67,16 @@ export const ROUTES = {
     path: "/admin/users/:id/grant",
     auth: "admin",
   },
+  adminBlockUser: {
+    method: "POST",
+    path: "/admin/users/:id/block",
+    auth: "admin",
+  },
+  adminDeleteUser: {
+    method: "DELETE",
+    path: "/admin/users/:id",
+    auth: "admin",
+  },
   adminTopGames: {
     method: "GET",
     path: "/admin/analytics/top-games",

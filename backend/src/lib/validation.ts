@@ -57,6 +57,11 @@ export const adminAuthSchema = z.object({
   idToken: z.string().min(1),
 });
 
+export const blockUserSchema = z.object({
+  blocked: z.boolean(),
+  reason: z.string().max(500).optional(),
+});
+
 export const grantTimeSchema = z
   .object({
     setTrialExpiresAt: z.number().int().positive().optional(),

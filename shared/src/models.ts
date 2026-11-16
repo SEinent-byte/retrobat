@@ -103,4 +103,7 @@ export interface LicenseState {
   serverTime: EpochMs;
   /** Soft anti-abuse state; client may show reduced service. */
   abuseState: AbuseState;
+  /** Hard admin block. When true the client must deny all play and show a
+   * blocked notice, regardless of status/expiresAt. */
+  blocked: boolean;
 }

@@ -94,6 +94,17 @@ public partial class App : Application
             return 0;
         }
 
+        // Every real game launch is license-gated on the server (downloaded or
+        // not): the client is never the source of truth. Blocked or inactive =>
+        // show a notice and refuse to start the game.
+        LicenseState? playStatus = null;
+        if (romPath is not null)
+        {
+            playStatus = await EnsurePlayAllowedAsync(session, api).ConfigureAwait(true);
+            if (playStatus is null)
+                return 1;
+        }
+
         if (needDownload)
         {
             if (!session.LoadPersisted())
@@ -142,7 +153,8 @@ public partial class App : Application
 
         var startedAt = DateTimeOffset.UtcNow;
         var exitCode = await LaunchGameAsync(
-                paths, baseDir, core, romPath, ArgValue(args, "-system"), args)
+                paths, baseDir, core, romPath, ArgValue(args, "-system"), args,
+                session, api, playStatus)
             .ConfigureAwait(true);
 
         if (needDownload)
@@ -160,6 +172,50 @@ public partial class App : Application
         }
         return exitCode;
     }
+
+    /// <summary>Server license gate run before every real game launch. Returns
+    /// the current state when play is allowed, or null after showing a notice
+    /// (caller must abort). The server is the source of truth: a missing session,
+    /// a block, or an inactive licence all deny play.</summary>
+    private async Task<LicenseState?> EnsurePlayAllowedAsync(
+        SessionManager session, ApiClient api)
+    {
+        if (!session.LoadPersisted())
+        {
+            Fatal($"Abre {BrandInfo.Name} e inicia sesión para jugar.");
+            return null;
+        }
+        LicenseState status;
+        try
+        {
+            status = await session.GetStatusAsync().ConfigureAwait(true);
+        }
+        catch (ApiException ex) when (ex.Code == ApiErrorCode.Blocked)
+        {
+            Fatal("Tu acceso ha sido bloqueado. Contacta al administrador.");
+            return null;
+        }
+        catch
+        {
+            Fatal("No se pudo validar tu licencia. Revisa tu conexión a internet.");
+            return null;
+        }
+        if (status.Blocked)
+        {
+            Fatal("Tu acceso ha sido bloqueado. Contacta al administrador.");
+            return null;
+        }
+        if (!IsPlayAllowed(status))
+        {
+            Fatal("Tu prueba terminó. Activa una suscripción para seguir jugando.");
+            return null;
+        }
+        return status;
+    }
+
+    /// <summary>Play is allowed only with an active subscription or a live trial.</summary>
+    private static bool IsPlayAllowed(LicenseState s) =>
+        s.Status == LicenseStatus.Subscribed || s.Status == LicenseStatus.TrialActive;
 
     /// <summary>Best-effort catalog sync at boot. Never blocks or fails the launch:
     /// skips silently when signed out or offline, and is capped by a short timeout so
@@ -216,7 +272,8 @@ public partial class App : Application
     /// </summary>
     private async Task<int> LaunchGameAsync(
         RetrobatPaths paths, string baseDir, string? core, string? romPath,
-        string? system, string[] args)
+        string? system, string[] args,
+        SessionManager session, ApiClient api, LicenseState? status)
     {
         var retroArch = paths.RetroArchExe;
         var corePath = core is not null
@@ -227,7 +284,8 @@ public partial class App : Application
         if (romPath is not null && corePath is not null &&
             File.Exists(retroArch) && File.Exists(corePath))
         {
-            return await LaunchViaRetroArchAsync(retroArch, corePath, romPath, system)
+            return await LaunchViaRetroArchAsync(
+                    retroArch, corePath, romPath, system, session, api, status)
                 .ConfigureAwait(true);
         }
 
@@ -249,7 +307,8 @@ public partial class App : Application
         new(StringComparer.OrdinalIgnoreCase) { "n64", "psx" };
 
     private static async Task<int> LaunchViaRetroArchAsync(
-        string retroArchExe, string corePath, string romPath, string? system)
+        string retroArchExe, string corePath, string romPath, string? system,
+        SessionManager session, ApiClient api, LicenseState? status)
     {
         var psi = new ProcessStartInfo(retroArchExe)
         {
@@ -290,8 +349,16 @@ public partial class App : Application
         // In-game controls overlay: press H during play to toggle the key list.
         using var controlsOverlay = new GameControlsOverlay(system);
         controlsOverlay.Start();
+        // License watchdog: closes the game when the granted time ends or the
+        // account is blocked/revoked mid-session (server-anchored, re-polled).
+        using var watchdog = new GameLicenseWatchdog(proc, session, api);
+        if (status is not null)
+            watchdog.Start(status);
         await proc.WaitForExitAsync().ConfigureAwait(true);
+        watchdog.Stop();
         controlsOverlay.Stop();
+        if (watchdog.KillReason is not null)
+            Fatal(watchdog.KillReason);
         return proc.ExitCode;
     }
 

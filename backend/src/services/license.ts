@@ -27,6 +27,12 @@ export async function getStatus(
   now = Date.now(),
 ): Promise<LicenseState> {
   const abuseState = await resolveAbuseState(dbc, userId);
+  const blockedRow = await dbc
+    .select({ blocked: schema.users.blocked })
+    .from(schema.users)
+    .where(eq(schema.users.id, userId))
+    .get();
+  const blocked = blockedRow?.blocked ?? false;
 
   // Active subscription wins.
   const sub = await dbc
@@ -47,6 +53,7 @@ export async function getStatus(
       currentPeriodEnd: sub.currentPeriodEnd,
       serverTime: now,
       abuseState,
+      blocked,
     };
   }
 
@@ -65,6 +72,7 @@ export async function getStatus(
       currentPeriodEnd: null,
       serverTime: now,
       abuseState,
+      blocked,
     };
   }
 
@@ -77,6 +85,7 @@ export async function getStatus(
     currentPeriodEnd: null,
     serverTime: now,
     abuseState,
+    blocked,
   };
 }
 

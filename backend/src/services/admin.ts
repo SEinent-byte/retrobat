@@ -6,8 +6,11 @@
 import { and, desc, eq, isNull, like, ne, sql } from "drizzle-orm";
 import {
   type AdminAuthResponse,
+  type AdminBlockUserRequest,
+  type AdminBlockUserResponse,
   type AdminCreateGameRequest,
   type AdminDeleteGameResponse,
+  type AdminDeleteUserResponse,
   type AdminFreeWindowRequest,
   type AdminListGamesResponse,
   type AdminUpdateGameRequest,
@@ -159,6 +162,75 @@ export async function grantTime(
 
   await audit(dbc, adminId, "grant_time", userId, { ...body, newExpiry }, now);
   return { userId, trialExpiresAt: newExpiry ?? trial?.expiresAt ?? null };
+}
+
+/** POST /admin/users/:id/block — hard block/unblock a user (reversible). The
+ * block is enforced at auth refresh, license status, download and play. */
+export async function blockUser(
+  dbc: Db,
+  adminId: string,
+  userId: string,
+  body: AdminBlockUserRequest,
+  now = Date.now(),
+): Promise<AdminBlockUserResponse> {
+  const user = await dbc
+    .select({ id: schema.users.id })
+    .from(schema.users)
+    .where(eq(schema.users.id, userId))
+    .get();
+  if (!user) throw fail.notFound("user not found");
+
+  await dbc
+    .update(schema.users)
+    .set({ blocked: body.blocked })
+    .where(eq(schema.users.id, userId));
+
+  await audit(
+    dbc,
+    adminId,
+    body.blocked ? "block_user" : "unblock_user",
+    userId,
+    body,
+    now,
+  );
+  return { userId, blocked: body.blocked };
+}
+
+/**
+ * DELETE /admin/users/:id — remove a user and all their data. Deletes play
+ * events, subscriptions and the trial first (FK order); removing the trial also
+ * frees the user's device for a fresh trial on re-registration. Refuses to
+ * delete a user whose email is an admin, so the panel cannot lock itself out.
+ */
+export async function deleteUser(
+  dbc: Db,
+  adminId: string,
+  userId: string,
+  now = Date.now(),
+): Promise<AdminDeleteUserResponse> {
+  const user = await dbc
+    .select({ id: schema.users.id, email: schema.users.email })
+    .from(schema.users)
+    .where(eq(schema.users.id, userId))
+    .get();
+  if (!user) throw fail.notFound("user not found");
+
+  const isAdmin = await dbc
+    .select({ email: schema.admins.email })
+    .from(schema.admins)
+    .where(eq(schema.admins.email, user.email))
+    .get();
+  if (isAdmin) throw fail.badRequest("cannot delete an admin user; demote first");
+
+  await dbc.delete(schema.playEvents).where(eq(schema.playEvents.userId, userId));
+  await dbc
+    .delete(schema.subscriptions)
+    .where(eq(schema.subscriptions.userId, userId));
+  await dbc.delete(schema.trials).where(eq(schema.trials.userId, userId));
+  await dbc.delete(schema.users).where(eq(schema.users.id, userId));
+
+  await audit(dbc, adminId, "delete_user", userId, { email: user.email }, now);
+  return { userId, releasedDevice: true };
 }
 
 /* ---------------------------- analytics ----------------------------- */

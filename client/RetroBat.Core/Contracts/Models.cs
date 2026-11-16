@@ -33,7 +33,8 @@ public sealed record LicenseState(
     long? ExpiresAt,
     long? CurrentPeriodEnd,
     long ServerTime,
-    AbuseState AbuseState);
+    AbuseState AbuseState,
+    bool Blocked = false);
 
 /// <summary>A console/system (SPEC §7.1). Extensions are the allowed ROM
 /// extensions for this system.</summary>

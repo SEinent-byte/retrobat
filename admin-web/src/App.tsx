@@ -104,9 +104,33 @@ function Users() {
 
   const grant = (u: AdminUserDto) =>
     run(async () => {
-      const days = Number(prompt(`Add how many trial days for ${u.email}?`, "7"));
-      if (!Number.isFinite(days) || days === 0) return;
-      await adminApi.grantTime(u.id, { extendTrialMs: days * 24 * 60 * 60 * 1000 });
+      const hours = Number(
+        prompt(
+          `¿Cuántas HORAS de acceso añadir para ${u.email}? (ej. 1, 24, 168 = 7 días)`,
+          "24",
+        ),
+      );
+      if (!Number.isFinite(hours) || hours === 0) return;
+      await adminApi.grantTime(u.id, { extendTrialMs: hours * 60 * 60 * 1000 });
+      await load();
+    });
+
+  const toggleBlock = (u: AdminUserDto) =>
+    run(async () => {
+      await adminApi.blockUser(u.id, { blocked: !u.blocked });
+      await load();
+    });
+
+  const remove = (u: AdminUserDto) =>
+    run(async () => {
+      if (
+        !confirm(
+          `¿Borrar a ${u.email}? Se eliminan sus datos y se libera su ` +
+            `dispositivo para una nueva prueba. Esto no se puede deshacer.`,
+        )
+      )
+        return;
+      await adminApi.deleteUser(u.id);
       await load();
     });
 
@@ -150,9 +174,17 @@ function Users() {
               <td>{u.abuseScore} {u.abuseState === "under_review" ? "⚠" : ""}</td>
               <td className="muted">{u.deviceFingerprint ? u.deviceFingerprint.slice(0, 10) + "…" : "—"}</td>
               <td>
-                <button className="btn secondary" onClick={() => grant(u)}>
-                  Grant time
-                </button>
+                <div className="row">
+                  <button className="btn secondary" onClick={() => grant(u)}>
+                    Dar tiempo
+                  </button>
+                  <button className="btn secondary" onClick={() => toggleBlock(u)}>
+                    {u.blocked ? "Desbloquear" : "Bloquear"}
+                  </button>
+                  <button className="btn danger" onClick={() => remove(u)}>
+                    Borrar
+                  </button>
+                </div>
               </td>
             </tr>
           ))}
@@ -553,6 +585,9 @@ function Analytics() {
     });
   useEffect(() => {
     void load();
+    // Auto-refresh while the tab is open so "now playing" stays live.
+    const id = setInterval(() => void load(), 5000);
+    return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -562,7 +597,9 @@ function Analytics() {
       <div className="panel">
         <div className="row" style={{ justifyContent: "space-between" }}>
           <h3 style={{ margin: 0 }}>Now playing</h3>
-          <button className="btn secondary" onClick={load}>Refresh</button>
+          <span className="muted" style={{ fontSize: 12 }}>
+            Se actualiza cada 5 s · <button className="btn secondary" onClick={load}>Refrescar ahora</button>
+          </span>
         </div>
         <table>
           <thead>

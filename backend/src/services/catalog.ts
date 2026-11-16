@@ -71,8 +71,9 @@ export async function getDownloadUrl(
     .get();
   if (!system) throw fail.notFound("system not found");
 
-  const subscribed =
-    (await getStatus(dbc, userId, now)).status === LicenseStatus.Subscribed;
+  const state = await getStatus(dbc, userId, now);
+  if (state.blocked) throw fail.blocked();
+  const subscribed = state.status === LicenseStatus.Subscribed;
   if (!subscribed && !isFreeOrTrial(game, now)) {
     throw fail.licenseRequired("this game needs an active subscription");
   }
