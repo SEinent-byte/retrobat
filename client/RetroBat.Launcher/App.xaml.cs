@@ -124,8 +124,12 @@ public partial class App : Application
             window.Close();
         }
 
+        // One-time per-system controls help (ES "basic" view hides descriptions).
+        ControlsCard.ShowOnce(ArgValue(args, "-system"));
+
         var startedAt = DateTimeOffset.UtcNow;
-        var exitCode = await LaunchGameAsync(paths, baseDir, core, romPath, args)
+        var exitCode = await LaunchGameAsync(
+                paths, baseDir, core, romPath, ArgValue(args, "-system"), args)
             .ConfigureAwait(true);
 
         if (needDownload)
@@ -155,7 +159,8 @@ public partial class App : Application
     /// RetroBat launcher (emulatorLauncher_real.exe) for RetroBat-mode installs.
     /// </summary>
     private async Task<int> LaunchGameAsync(
-        RetrobatPaths paths, string baseDir, string? core, string? romPath, string[] args)
+        RetrobatPaths paths, string baseDir, string? core, string? romPath,
+        string? system, string[] args)
     {
         var retroArch = paths.RetroArchExe;
         var corePath = core is not null
@@ -166,7 +171,7 @@ public partial class App : Application
         if (romPath is not null && corePath is not null &&
             File.Exists(retroArch) && File.Exists(corePath))
         {
-            return await LaunchViaRetroArchAsync(retroArch, corePath, romPath)
+            return await LaunchViaRetroArchAsync(retroArch, corePath, romPath, system)
                 .ConfigureAwait(true);
         }
 
@@ -182,8 +187,13 @@ public partial class App : Application
         return 1;
     }
 
+    // Systems whose movement is the analog stick (3D). Everything else uses the
+    // d-pad. Drives which keyboard-movement overlay is layered on at launch.
+    private static readonly HashSet<string> AnalogSystems =
+        new(StringComparer.OrdinalIgnoreCase) { "n64", "psx" };
+
     private static async Task<int> LaunchViaRetroArchAsync(
-        string retroArchExe, string corePath, string romPath)
+        string retroArchExe, string corePath, string romPath, string? system)
     {
         var psi = new ProcessStartInfo(retroArchExe)
         {
@@ -192,14 +202,27 @@ public partial class App : Application
         };
         psi.ArgumentList.Add("-L");
         psi.ArgumentList.Add(corePath);
-        // PlayVault RetroArch overrides (borderless, no "RetroArch" title bar),
-        // layered on top of the user's retroarch.cfg. Shipped beside the exe.
-        var overrideCfg = Path.Combine(
-            Path.GetDirectoryName(retroArchExe)!, "playvault.cfg");
-        if (File.Exists(overrideCfg))
+        // PlayVault RetroArch overrides, layered on top of the user's
+        // retroarch.cfg. The base (borderless window, face buttons, analog binds)
+        // plus one per-system movement overlay so "arrows = move" stays identical
+        // for the player while routing correctly to stick (3D) or d-pad (2D).
+        var cfgDir = Path.GetDirectoryName(retroArchExe)!;
+        var cfgs = new List<string>();
+        var baseCfg = Path.Combine(cfgDir, "playvault.cfg");
+        if (File.Exists(baseCfg))
+            cfgs.Add(baseCfg);
+        var overlay = Path.Combine(
+            cfgDir,
+            system is not null && AnalogSystems.Contains(system)
+                ? "playvault-analog.cfg"
+                : "playvault-dpad.cfg");
+        if (File.Exists(overlay))
+            cfgs.Add(overlay);
+        if (cfgs.Count > 0)
         {
+            // RetroArch accepts a comma-separated list; Windows paths carry no comma.
             psi.ArgumentList.Add("--appendconfig");
-            psi.ArgumentList.Add(overrideCfg);
+            psi.ArgumentList.Add(string.Join(",", cfgs));
         }
         psi.ArgumentList.Add(romPath);
 
@@ -208,7 +231,11 @@ public partial class App : Application
         // Expand the (borderless) RetroArch window to fill the desktop work area,
         // so it opens maximized while the Windows taskbar stays visible.
         _ = MaximizeToWorkAreaAsync(proc);
+        // In-game controls overlay: press H during play to toggle the key list.
+        using var controlsOverlay = new GameControlsOverlay(system);
+        controlsOverlay.Start();
         await proc.WaitForExitAsync().ConfigureAwait(true);
+        controlsOverlay.Stop();
         return proc.ExitCode;
     }
 
