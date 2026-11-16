@@ -3,7 +3,7 @@
  * gated by the `admins` table; auth is Google login (the email must already
  * be an admin — admins are created by seeding or by promotion).
  */
-import { and, desc, eq, isNull, like, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, like, ne, sql } from "drizzle-orm";
 import {
   type AdminAuthResponse,
   type AdminCreateGameRequest,
@@ -253,6 +253,38 @@ export async function upsertSystem(
 /* ------------------------------ games ------------------------------- */
 
 /**
+ * Reject a second game sharing a ROM filename inside one console. Both the R2
+ * key and the client ROM path derive from `roms/<folder>/<romFilename>`, so a
+ * duplicate collides: the upload would overwrite the other game's object and
+ * both catalog entries would map to a single file on the client. `excludeId`
+ * skips the game being edited (used by the console-move path).
+ */
+async function assertRomFilenameFree(
+  dbc: Db,
+  systemId: string,
+  romFilename: string,
+  excludeId?: string,
+): Promise<void> {
+  const clash = await dbc
+    .select({ id: schema.games.id })
+    .from(schema.games)
+    .where(
+      and(
+        eq(schema.games.systemId, systemId),
+        eq(schema.games.romFilename, romFilename),
+        excludeId ? ne(schema.games.id, excludeId) : undefined,
+      ),
+    )
+    .get();
+  if (clash) {
+    throw fail.badRequest(
+      "a game with this ROM filename already exists in this console",
+      { romFilename: "duplicate in system" },
+    );
+  }
+}
+
+/**
  * POST /admin/games — add a game. Validates the system FK and that the ROM
  * extension is allowed for that system (SPEC §7.1). The ROM is uploaded to
  * R2 separately; r2_key is derived here.
@@ -278,6 +310,8 @@ export async function createGame(
       { romFilename: `allowed: ${allowed.join(", ")}` },
     );
   }
+
+  await assertRomFilenameFree(dbc, body.systemId, body.romFilename);
 
   const id = uuid();
   const r2Key = `roms/${system.retrobatFolder}/${body.romFilename}`;
@@ -399,6 +433,9 @@ export async function updateGame(
         { systemId: `allowed: ${allowed.join(", ")}` },
       );
     }
+    // Block a move that would land on a filename already taken in the target
+    // console (same r2Key + same client ROM path).
+    await assertRomFilenameFree(dbc, body.systemId, game.romFilename, gameId);
     patch.systemId = body.systemId;
 
     const newR2Key = `roms/${system.retrobatFolder}/${game.romFilename}`;
