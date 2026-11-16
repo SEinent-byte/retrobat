@@ -5,11 +5,18 @@ _Last update: 2026-11-15. Operational tracker (design = `SPEC.md`). Compacted; o
 ---
 ## ▶ RESUME HERE
 
-**TOTAL ≈ 85%.** Core + distro validated end-to-end on a real clean install (install → login → trial → sync → license → R2 download → RetroArch launch, keyboard playable). Remaining = **billing 0% (BLOCKED on provider)** + content/UX polish + domain.
+**TOTAL ≈ 88%.** Core + distro validated end-to-end on a real clean install (install → login → trial → sync → license → R2 download → RetroArch launch, keyboard playable). Remaining = **billing 0% (BLOCKED on provider)** + content/UX polish + domain.
 
-**Live install `C:\PlayVault` is fully current via direct staging** (ES exe, launcher, cfgs, resources/locale, batocera.conf). **⚠ Installer artifact is STALE — rebuild before shipping** (dist changed a lot this session).
+**Live install `C:\PlayVault` + dist `D:\es-build\dist` current** (launcher re-published with enforcement + boot-sync). **Installer rebuilt `PlayVault-Setup-0.1.0.exe`** → `D:\es-build\installer_out\` + copy at `C:\Users\a\Documents\` (for a tester). Backend + admin-web **deployed** this session.
 
-### ▶▶ THIS SESSION (2026-11-15, controls/keyboard/account UX) — committed `1c01464`, pushed `feat/distro-gpl-cores`
+### ▶▶ THIS SESSION (2026-11-15, catalog freshness + user controls + play enforcement) — commits `9fe69ac` `e1b73bc` `655f0a0`, branch `feat/distro-gpl-cores` (DEPLOYED)
+Four features; all 4 modules build; backend Worker + admin-web Pages deployed; no D1 migration (reused `users.blocked`).
+- **Boot-sync** (`9fe69ac`): new `launcher.exe -boot --home <root> --windowed` syncs the catalog then starts ES, so games added on the web appear on every launch (ES caches gamelists, so a mid-run add still needs reopen or the Mi-Cuenta reload). Installer shortcuts + [Run] now point at `launcher -boot` (toro icon via `IconFilename`).
+- **Dup-guard** (`e1b73bc`): `createGame` + console-move reject a duplicate `(systemId, romFilename)` (was silent r2Key collision). 400, no contract change.
+- **User controls + enforcement** (`655f0a0`): `LicenseState.blocked` (shared/backend/client); `POST /admin/users/:id/block` (reversible), `DELETE /admin/users/:id` (cascades play events/subs/trial → frees device for a fresh trial; refuses admin users). Launcher now license-gates EVERY launch incl. already-downloaded ROMs (signed-out/blocked/inactive → notice, no game). `GameLicenseWatchdog` closes a running game at the server-anchored trial deadline or on mid-session block/revoke (re-poll 60s). Admin Users tab: Bloquear/Desbloquear + Borrar + grant-in-hours; Analytics auto-refresh 5s.
+  - Caveats: "blocked" needs the deployed backend (`blocked` field + endpoints). Offline launch = strict deny ("revisa tu conexión"). Watchdog kills RetroArch process tree (unsaved state lost like any force-close). **Still open (Caso 1): re-uploading new content to the SAME game id is never re-downloaded by a client that already has it** — needs a content hash/version on `GameDto` (DownloadUrlResponse already carries `sha256`, unused).
+
+### ▶▶ PRIOR SESSION (2026-11-15, controls/keyboard/account UX) — committed `1c01464`, pushed `feat/distro-gpl-cores`
 Keyboard + controls UX for the distro, all **global** (one scheme every game/system; only the game's own meaning of a button varies, as on real hardware):
 - **Global keyboard scheme** (`distro/retroarch/playvault.cfg`): key letter = on-screen button label → A=`A`, B=`B`, X=`X`, Y=`Y`, N64 Z-trigger=`Z`, L/R=`Q`/`W`, Start=`Enter`, Select=`RShift`, N64 C-buttons=`I/J/K/L`. One key per RetroPad button, no dups. Replaces confusing RetroArch default (A=x,B=z).
 - **Movement overlays** (`playvault-analog.cfg` / `playvault-dpad.cfg`): arrows ALWAYS move. analog (n64,psx) frees d-pad → arrows=left stick; 2D clears analog binds → arrows=d-pad. Launcher layers base + per-system overlay via `--appendconfig "base,overlay"` (`AnalogSystems={n64,psx}` in `App.xaml.cs`).
@@ -64,7 +71,8 @@ Keyboard + controls UX for the distro, all **global** (one scheme every game/sys
 ## ▶ PENDING
 - **Billing (step 9)** — BLOCKED on USER choosing payment provider (Stripe recommended) + per-country methods.
 - **License docs finalization** — fill `<CONTACT>`/`<PRODUCT-DOMAIN>` in `distro/licenses/` (WRITTEN-OFFER, CORRESPONDING-SOURCES), pin per-core source commits, mirror source tarballs to R2.
-- **Installer rebuild** (dist changed this session) + bundle `vc_redist.x86`.
+- **vc_redist.x86 bundling** — still TODO (`.iss [Run]` commented): a tester machine without the MSVC x86 runtime can fail to start ES. Installer itself rebuilt this session.
+- **Content versioning (Caso 1)** — re-upload to an existing game id does not reach clients that already downloaded it; add a `sha256`/version to `GameDto` (response field exists) + client re-download on mismatch.
 - **Domain** — USER buys (non-blocking; loopback OAuth needs none).
 - **Thumbnails/boxart** — not supported (feature gap): GameDto has no image field; needs contract bump + admin artwork upload→R2 + client writes `<image>` to gamelist. Medium.
 - **First-run with 0 ROMs** — `FirstRunSeed.Seed` has no caller + `roms\*` installer-excluded → fresh machine may show empty carousel; verify or wire seed at startup. Seed `distro/seed/roms/nes` ships a welcome entry.
@@ -77,7 +85,8 @@ Keyboard + controls UX for the distro, all **global** (one scheme every game/sys
 |---|---|
 | Infra / auth / license / trial / anti-farm / anti-tamper | 100 |
 | Catalog / R2 download / play analytics | 100 |
-| Admin API + panel + ROM upload + game mgmt | 100 |
+| Admin API + panel + ROM upload + game mgmt + block/delete users + dup-guard | 100 |
+| Play enforcement (per-launch license gate + in-game watchdog) | 100 (online); offline grace not done |
 | ES-native integration (sync + proxy + Mi Cuenta widget + click) | 100 |
 | Standalone distro (own MIT/GPL frontend, rebrand PlayVault, theme, keyboard/controls UX, locale) | ~92 (missing: installer rebuild, license placeholders, vcredist) |
 | Billing (step 9) | 0 — BLOCKED on provider |
