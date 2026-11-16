@@ -49,18 +49,22 @@ Source: "{#DistDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs
   Excludes: "*.validated,*.es-bak,roms\*,.emulationstation\account_status.txt,emulators\retroarch\retroarch.cfg,emulators\retroarch\saves\*,emulators\retroarch\states\*,emulators\retroarch\logs\*,emulators\retroarch\screenshots\*"
 
 [Icons]
-Name: "{group}\{#AppFullName}"; Filename: "{app}\{#AppExeName}"; \
-  Parameters: "--home ""{app}"" --windowed"; WorkingDir: "{app}"
+; Launch through launcher.exe -boot: it syncs the catalog (new web games) then
+; starts emulationstation.exe. IconFilename keeps the toro icon on the shortcut.
+Name: "{group}\{#AppFullName}"; Filename: "{app}\launcher.exe"; \
+  Parameters: "-boot --home ""{app}"" --windowed"; WorkingDir: "{app}"; \
+  IconFilename: "{app}\{#AppExeName}"
 Name: "{group}\{cm:UninstallProgram,{#AppFullName}}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#AppFullName}"; Filename: "{app}\{#AppExeName}"; \
-  Parameters: "--home ""{app}"" --windowed"; WorkingDir: "{app}"; Tasks: desktopicon
+Name: "{autodesktop}\{#AppFullName}"; Filename: "{app}\launcher.exe"; \
+  Parameters: "-boot --home ""{app}"" --windowed"; WorkingDir: "{app}"; \
+  IconFilename: "{app}\{#AppExeName}"; Tasks: desktopicon
 
 [Run]
 ; Visual C++ runtime for the MSVC-built EmulationStation (Win32/x86).
 ; TODO before release: bundle vc_redist.x86.exe under redist\ and enable:
 ; Filename: "{tmp}\vc_redist.x86.exe"; Parameters: "/install /quiet /norestart"; \
 ;   StatusMsg: "Installing Visual C++ runtime..."; Check: VCRedistNeeded
-Filename: "{app}\{#AppExeName}"; Parameters: "--home ""{app}"" --windowed"; WorkingDir: "{app}"; \
+Filename: "{app}\launcher.exe"; Parameters: "-boot --home ""{app}"" --windowed"; WorkingDir: "{app}"; \
   Description: "{cm:LaunchProgram,{#AppFullName}}"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]

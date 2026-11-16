@@ -60,6 +60,19 @@ public partial class App : Application
         var session = new SessionManager(
             api, new TokenStore(), new GoogleOAuthFlow(config), new ClockGuard());
 
+        // Boot entry: the installer shortcut runs "launcher.exe -boot --home <root>
+        // --windowed". Sync the catalog once (best effort, signed-in only) so games
+        // added on the web since the last run are present, then start
+        // EmulationStation with the remaining args and exit. ES parses the fresh
+        // gamelists as it boots, so new games appear on every launch.
+        if (HasFlag(args, "-boot"))
+        {
+            var home = ArgValue(args, "--home");
+            var bootPaths = home is not null ? new RetrobatPaths(home) : paths;
+            await TryBootSyncAsync(api, session, bootPaths).ConfigureAwait(true);
+            return LaunchEmulationStation(bootPaths, args);
+        }
+
         // Start-menu "Mi Cuenta" entry (ES passes -account): open the account menu
         // directly, with no game rom. Refresh the top-left status on close.
         if (HasFlag(args, "-account"))
@@ -146,6 +159,49 @@ public partial class App : Application
             }
         }
         return exitCode;
+    }
+
+    /// <summary>Best-effort catalog sync at boot. Never blocks or fails the launch:
+    /// skips silently when signed out or offline, and is capped by a short timeout so
+    /// a dead network cannot delay EmulationStation starting.</summary>
+    private static async Task TryBootSyncAsync(
+        ApiClient api, SessionManager session, RetrobatPaths paths)
+    {
+        try
+        {
+            if (!session.LoadPersisted())
+                return; // signed out: first-run seed / account menu handle it
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+            await new CatalogSync(api, session, paths)
+                .SyncAsync(ct: cts.Token)
+                .ConfigureAwait(true);
+        }
+        catch
+        {
+            // Offline, timeout or stale token: launch anyway with the last lists.
+        }
+    }
+
+    /// <summary>Start emulationstation.exe with the boot args (minus our -boot flag)
+    /// and return. The launcher exits immediately; ES keeps running on its own.</summary>
+    private static int LaunchEmulationStation(RetrobatPaths paths, string[] args)
+    {
+        var esExe = Path.Combine(paths.RootDir, "emulationstation.exe");
+        if (!File.Exists(esExe))
+        {
+            Fatal("emulationstation.exe not found at " + paths.RootDir);
+            return 1;
+        }
+        var psi = new ProcessStartInfo(esExe)
+        {
+            WorkingDirectory = paths.RootDir,
+            UseShellExecute = false,
+        };
+        foreach (var a in args)
+            if (!string.Equals(a, "-boot", StringComparison.OrdinalIgnoreCase))
+                psi.ArgumentList.Add(a);
+        Process.Start(psi);
+        return 0;
     }
 
     private static Task PostPlay(
