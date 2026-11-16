@@ -1,290 +1,86 @@
 # STATUS — next-session quickstart
 
-_Last update: 2026-11-13. Operational state tracker (not design; design = `SPEC.md`)._
+_Last update: 2026-11-15. Operational tracker (design = `SPEC.md`). Compacted; older step-by-step logs dropped (git history has them)._
 
 ---
-## ▶ RESUME HERE (read first)
+## ▶ RESUME HERE
 
-**TOTAL PRODUCT ≈ 84%.** (Backend ~100 + client ~95 + distro ~90 + billing 0 + polish ~25, weighted.) Functional core DONE + deployed to prod; **standalone distro FULL PIPELINE validated end-to-end on a real clean install this session** (install → login → trial → sync → license → R2 download → RetroArch launch). Remaining = monetization (billing 0%, BLOCKED on provider) + content/UX polish (admin WEB OAuth client NOT done → owner can't upload yet; thumbnails feature; own wheel-layout theme; dedup; license-doc placeholders, vcredist) + domain. See the four NEW PENDING items + "FULL PIPELINE VALIDATED" below.
+**TOTAL ≈ 85%.** Core + distro validated end-to-end on a real clean install (install → login → trial → sync → license → R2 download → RetroArch launch, keyboard playable). Remaining = **billing 0% (BLOCKED on provider)** + content/UX polish + domain.
 
-### ▶▶ DONE 2026-11-15c — account UI moved OUT of game lists → ES top-left widget + Start menu (ES source change)
-Owner wanted the account (Mi Cuenta) in the top-left corner, not mixed into every game list, and no placeholder clutter. Shipped a real ES-engine change.
-- **ES source patches (external `D:\es-build\emulationstation`, NOT in git — re-apply when vendoring the build, like the `Log.cpp` `<chrono>` patch):**
-  - `es-core/src/Window.h` + `Window.cpp`: new **top-left account indicator** = toro avatar (`:/window_icon_256.png`) + one line of text, always visible (cloned from `mClock`). Reads `<ESHOME>\.emulationstation\account_status.txt` every 1500ms; empty/missing → "Mi Cuenta — Sin sesion". Rendered in `Window::render`, refreshed in `Window::update`, created in `Window::init`; member `mAccount`/`mAccountIcon`/`mAccountElapsed`.
-  - `es-app/src/guis/GuiMenu.cpp`: new **Start-menu "MI CUENTA"** entry at the top → runs `launcher.exe -account` (via `Utils::Platform::ProcessStartInfo`) then `ViewController::reloadAllGames(window,false,false,true)`. Only added when `launcher.exe` exists beside the ES exe.
-  - Includes: use `utils/FileSystemUtil.h` (NOT `utils/FileSystem.h` — es-core has no such alias; C1083).
-  - **Rebuild gotcha:** `cmake --build build --config Release --parallel` returned exit 0 but MSBuild treated the changed files as up-to-date and did NOT recompile (kept Nov-13 objs → staged the OLD exe). Fix: delete the stale objs first (`build/es-core/es-core.dir/Release/Window.obj`, `build/es-app/emulationstation.dir/Release/GuiMenu.obj`) + `bin/Win32/Release/emulationstation.exe`, then rebuild. **Verify after building:** `grep -ac "account_status" bin/Win32/Release/emulationstation.exe` must be ≥1, and the exe mtime must be fresh. New exe (md5 `1748F607…`, 7741952 B) staged to `dist` + `C:\PlayVault`, **rcedit toro icon re-applied** after copy (verified strings survive rcedit).
-- **Client (in git):**
-  - `CatalogSync.SyncAsync`: **stops writing the `_mi_cuenta.*` game entry**; strips any stale copy (`RemoveAccountEntry` per folder); writes games only; calls new `CatalogSync.WriteAccountStatus(paths, status)` → `account_status.txt` ("Mi Cuenta — " + `AccountStatusText.Short`).
-  - `FirstRunSeed`: still seeds a pre-login Mi Cuenta entry (safety: ES needs ≥1 system before login) + now writes `account_status.txt` (logged-out).
-  - `RetroBat.Launcher/App.xaml.cs`: new `-account` flag → opens `AccountMenuWindow` directly (no rom), then `WriteStatusAfterMenu` refreshes `account_status.txt` from the session (covers login/logout/trial). Legacy RBACCT pseudo-ROM path kept for pre-login seeds.
-  - Built clean (0 warn/0 err); launcher re-published self-contained single-file → `dist\launcher.exe` + `C:\PlayVault\launcher.exe`.
-- **Live test:** relaunch ES → toro taskbar/exe icon + top-left widget; Start → MI CUENTA → login/logout; open it once to re-sync (rewrites gamelists without the account entry). `account_status.txt` seeded with current trial for immediate display.
-- **⚠ Installer rebuild pending** to ship (dist changed: ES exe, launcher, resources/window_icon_256.png, es_settings LoadEmptySystems+CollectionSystemsAuto).
+**Live install `C:\PlayVault` is fully current via direct staging** (ES exe, launcher, cfgs, resources/locale, batocera.conf). **⚠ Installer artifact is STALE — rebuild before shipping** (dist changed a lot this session).
 
-### ▶▶ DONE 2026-11-15e — default Spanish, toro launch splash, RetroArch borderless+maximized
-- **Default language Spanish**: `Language=es_ES` added to seed `es_settings.cfg` (live already had it). (ES `LoadEmptySystems` default is already `false` → empty consoles hidden without an explicit setting; ES drops the redundant key on exit, harmless.)
-- **Game launch splash logo → toro** (ES source): `es-core/src/Splash.h` WIN32 `DEFAULT_SPLASH_IMAGE` changed `:/splash.svg` → `:/logo.png` (nanosvg can't render a raster toro inside an SVG; PNG is reliable). Replaced `resources/logo.png` with toro 512×512 in build-source + `dist` + `C:\PlayVault` (`*.es-bak` backups). The launch screen (shown with the game name while the emulator starts) now shows the toro when the game has no boxart. Recompiled ES, restaged exe (+rcedit).
-- **RetroArch window borderless + maximized, taskbar visible** (#27 "RetroArch …" title bar gone, #… window fills screen): `distro/retroarch/playvault.cfg` (new, in git) sets `video_window_show_decorations=false` + `video_windowed_fullscreen=false` + `video_fullscreen=false`; the launcher passes it via `--appendconfig` (layered over the user's retroarch.cfg, path-independent). `RetroBat.Launcher/App.xaml.cs` `LaunchViaRetroArchAsync` now also `MaximizeToWorkAreaAsync` → Win32 `SystemParametersInfo(SPI_GETWORKAREA)` + `MoveWindow` resizes RetroArch's window to the desktop work area once it appears (taskbar stays visible). Override cfg copied to `dist` + live; launcher rebuilt/republished + restaged.
-- **RetroArch rebrand (visible parts done 2026-11-15f):** `retroarch.exe` icon set to toro via rcedit (taskbar icon) in `dist` + `C:\PlayVault` (re-run rcedit after staging a fresh RetroArch). Launcher now `SetWindowText(hwnd, BrandInfo.Name)` after maximizing → taskbar label shows **"PlayVault"**, not "RetroArch <core>". Combined with borderless (no title bar), "RetroArch" is no longer visible during play. **Still upstream/GPL, NOT rebranded:** RetroArch's own in-app menu (Ozone/RGUI, only on F1/hotkey) still shows RetroArch name+logo — a real rebrand there needs asset edits or a RetroArch recompile; left as-is.
-- **Installer (rebuilt 2026-11-15f):** `playvault.iss` Excludes now also skip `roms\*`, `.emulationstation\account_status.txt`, `emulators\retroarch\retroarch.cfg`, `*.es-bak` → a reinstall/upgrade PRESERVES the user's games, cleaned gamelists, login status and RetroArch settings (the shipped `playvault.cfg` override is NOT excluded). Artifact `D:\es-build\installer_out\PlayVault-Setup-0.1.0.exe` (~306MB, 2026-11-15 19:32).
-  - ⚠ **Silent reinstall from automation returns Inno exit code 2** (aborts before logging) — needs UAC/interactive elevation (installs to `{sd}\PlayVault` = C: root). Run it as the user with the UAC prompt. **Not a blocker for testing:** `C:\PlayVault` is already fully current from direct staging (es exe `BEBDEB29…`, launcher `40B111F3…`, both == dist; logo.png toro, playvault.cfg, retroarch toro icon all in place). Just relaunch PlayVault.
-- **Pending (not done):**
-  - RetroArch internal menu branding (deep, GPL assets/recompile).
-  - **Fresh-install first-run UX:** `FirstRunSeed.Seed` is NEVER called (no caller in client) and `roms\*` is now installer-excluded → a brand-new machine installs with NO roms. With `LoadEmptySystems=false` + `es_systems.cfg` defining 10 systems, a zero-games carousel may show ES's "no systems" state. The clickable account widget + Start→MI CUENTA still allow login, but verify ES is usable with zero systems, or wire `FirstRunSeed.Seed` at client/launcher startup (writes a pre-login welcome). Not tested.
+### ▶▶ THIS SESSION (2026-11-15, controls/keyboard/account UX) — committed `1c01464`, pushed `feat/distro-gpl-cores`
+Keyboard + controls UX for the distro, all **global** (one scheme every game/system; only the game's own meaning of a button varies, as on real hardware):
+- **Global keyboard scheme** (`distro/retroarch/playvault.cfg`): key letter = on-screen button label → A=`A`, B=`B`, X=`X`, Y=`Y`, N64 Z-trigger=`Z`, L/R=`Q`/`W`, Start=`Enter`, Select=`RShift`, N64 C-buttons=`I/J/K/L`. One key per RetroPad button, no dups. Replaces confusing RetroArch default (A=x,B=z).
+- **Movement overlays** (`playvault-analog.cfg` / `playvault-dpad.cfg`): arrows ALWAYS move. analog (n64,psx) frees d-pad → arrows=left stick; 2D clears analog binds → arrows=d-pad. Launcher layers base + per-system overlay via `--appendconfig "base,overlay"` (`AnalogSystems={n64,psx}` in `App.xaml.cs`).
+- **Controls card** (`ControlsCard.cs`): one-time per-system help before launch (ES "basic" view hides desc). HKCU flag `Software\PlayVault\ControlsShown`.
+- **In-game overlay (press `H`)** (`GameControlsOverlay.cs`): global `WH_KEYBOARD_LL` hook on STA thread; `H` toggles non-activating top-most window (RetroArch keeps focus, no pause); `H` swallowed + unmapped in our cores. Launcher stays alive during play (`waitForExit`).
+- **Gamepad**: plug-and-play (autoconfig/ shipped, 30 xinput profiles, `input_autodetect_enable=true`). NOTE test machine is a **QEMU VM** → USB pad needs host passthrough; bare-metal works.
 
-### ▶▶ TEST CHECKLIST (relaunch `C:\PlayVault\emulationstation.exe`, no reinstall needed)
-1. Taskbar + exe icon = toro. UI in Spanish (es_ES).
-2. Top-left = clickable toro widget "Mi Cuenta — Prueba: Xd Yh"; tap → account menu (login/logout/trial); Start→MI CUENTA also works.
-3. Empty consoles hidden; no account entry / Test ROM in game lists; n64 shows Army Men.
-4. Launch Army Men → load splash shows **toro** + game name; RetroArch opens **borderless, maximized to work area (taskbar visible)**, taskbar label "PlayVault", icon toro.
+### ▶▶ THIS SESSION — external ES-source fixes (NOT in git; re-apply on fresh clone / when vendoring) at `D:\es-build\emulationstation`
+- `es-core/src/Window.cpp`:
+  - Account widget **icon-only** (toro, no text): render only `mAccountIcon`; hitbox shrunk to icon square.
+  - **Click → account menu**: `processMouseButton` gate now MATCHES render gate `mGuiStack.size()<2 || !Renderer::ScreenSettings::fullScreenMenus()` (old `size<2` blocked windowed gamelists → click launched a game).
+  - **Launcher path fix**: `Paths::getExePath()` is already the exe DIR → use `getExePath()+"/launcher.exe"`, NOT `getParent(getExePath())` (that resolved `C:/launcher.exe`, exists=0 → fell through to game).
+- `es-app/src/guis/GuiMenu.cpp:141`: same launcher-path fix (`getExePath()+"/launcher.exe"`).
+- **Spanish locale**: ES WIN32 `setLocale` forces `en_US` and never calls `EsLocale::init`, BUT `EsLocale::checkLocalisationLoaded` loads `.po` from `SystemConf "system.language"` via `ResourceManager :/locale/...` (= `resources/`). Fix without source edit: ship `resources/locale/lang/<lang>/LC_MESSAGES/emulationstation2.po` (copied from build-source `locale/lang`) + `batocera.conf` `system.language=es_ES`. `es_settings.cfg Language` is the OTHER (unused by loader) setting.
+- Prior patches still required: `es-core/src/Log.cpp` add `#include <chrono>`; `es-core/src/Splash.h` WIN32 `DEFAULT_SPLASH_IMAGE` `:/splash.svg`→`:/logo.png` (toro splash).
 
-### ▶▶ DONE 2026-11-15d — account widget is now a CLICKABLE button + Test ROM purged
-- **ES `Window::processMouseButton`** (es-core): a left click/touch on the top-left account widget bounds now opens the account menu (`launcher.exe -account`, via `Utils::Platform::ProcessStartInfo`, `waitForExit`) then calls the existing `mReloadGamelistsCallback` (registered in `main.cpp:567` → `ViewController::reloadAllGames`) and forces a status refresh. Added `#include "utils/Platform.h"`. Start-menu "MI CUENTA" kept as the controller/keyboard path.
-- Rebuilt (forced obj delete), restaged exe to `dist` + `C:\PlayVault` (+ rcedit). Verified `grep -ac account_status` + `MI CUENTA` = 1.
-- **Test ROM (placeholder) DELETED from prod** (D1 `games` + `play_events`, R2 `roms/nes/test.nes`). Note: direct D1 `DELETE` was NOT blocked this time (the earlier `UPDATE` was); clean removal.
-- **Live `C:\PlayVault\roms\nes` cleaned** (removed `_mi_cuenta.*`, `test.nes`, stale `gamelist.xml`) → nes now empty = hidden. n64 (Army Men) untouched. A tap on the widget (or Start→MI CUENTA) re-syncs and rewrites gamelists from the catalog without the account entry.
+### ▶▶ TEST CHECKLIST (relaunch `C:\PlayVault\emulationstation.exe --home C:\PlayVault --windowed`)
+1. Top-left = **toro icon only** (no text). Click it → **Mi Cuenta** window (login/trial/logout). ES menus in **Spanish**.
+2. Launch Army Men (n64) → first time a controls card; **press `H` in-game** → controls overlay.
+3. "press A"→`A`, "press Z"→`Z`; move with arrows; shoot `Z`.
 
-### ▶▶ SESSION 2026-11-15 — summary (resume from here)
-Done this session (all committed + pushed to `feat/distro-gpl-cores`):
-1. **Admin WEB OAuth client — DONE + confirmed e2e.** Web client `1046162067802-9jgcu8nl2fdt0haroq9opr6fe2p31cgl.apps.googleusercontent.com`; backend secret `ADMIN_GOOGLE_CLIENT_ID` set; `VITE_ADMIN_GOOGLE_CLIENT_ID` baked into the admin build (direct-upload, NOT a CF build — dashboard var is a no-op). Logged in, panel works (Users/Analytics/Consoles&Games).
-2. **Rebrand → PlayVault** (user-facing only). `BrandInfo` Name/FullName=PlayVault, HKCU `Software\PlayVault`; admin `APP_NAME`; installer `playvault.iss` → `{sd}\PlayVault`, `PlayVault-Setup-0.1.0.exe`; theme folder `playvault-dark`. Internal `RetroBat.*` namespaces untouched.
-3. **Bull logo (toro)** everywhere: admin favicon+header+login; WPF App+Launcher ApplicationIcon + window logos; `emulationstation.exe` icon via rcedit (build step, re-run after assembling dist); Mi Cuenta ES avatar = toro PNG. Source `distro/brand/toro-source.png` → `distro/brand/toro.{png,ico}`.
-4. **Mi Cuenta dedup** to one console (`CatalogSync.PickAccountFolder`, prefers nes).
-5. **Carousel theme** = `elementerial` (MIT), default `ThemeSet`; `playvault-dark` fallback. ⚠ review/replace bundled console brand logos before commercial release.
-6. **Game Bar** disabled in HKCU (stops `ms-gamingoverlay` popup — machine fix, not shipped).
-- **Current installer artifact:** `D:\es-build\installer_out\PlayVault-Setup-0.1.0.exe` (~306M, 2026-11-15 14:47, elementerial + toro icon + avatar). `C:\PlayVault` = live install, synced.
+---
+## ▶ BUILD / DEPLOY RECIPES
+- **Client**: `cd client && "C:\Program Files\dotnet\dotnet.exe" build RetroBat.sln`.
+- **Launcher (self-contained single-file, ship to dist/live)**: `cd client && dotnet publish RetroBat.Launcher -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true` → copy `...\publish\RetroBat.Launcher.exe` to `dist\launcher.exe` + `C:\PlayVault\launcher.exe` (kill running `launcher`/`retroarch` first; file locks while a game runs).
+- **ES rebuild** (external `D:\es-build\emulationstation`): CMake at `C:\Program Files\CMake\bin\cmake.exe`. **Gotcha: MSBuild treats changed files as up-to-date (exit 0, no recompile)** → delete stale objs first: `build/es-core/es-core.dir/Release/Window.obj`, `build/es-app/emulationstation.dir/Release/GuiMenu.obj`, `bin/Win32/Release/emulationstation.exe`, then `cmake --build build --config Release --parallel`. Verify: `grep -ac account_status bin/Win32/Release/emulationstation.exe ≥1` + fresh mtime. (Full first-build toolchain recipe in git history of this file @ `2b26e0e`.)
+- **ES exe icon (rcedit, build step — ES is prebuilt, re-run after staging)**: `rcedit-x64.exe <es.exe> --set-icon distro\brand\toro.ico` on dist + live. rcedit at `...\scratchpad\logo\rcedit-x64.exe` (electron/rcedit v2.0.0; re-fetch if scratchpad cleared).
+- **Backend deploy**: `cd backend; npx wrangler deploy` (PowerShell `;` not `&&`). Prod Worker apiVersion 0.5.0.
+- **Admin web** (direct-upload, NOT CF build): `pnpm --filter @retrobat/admin-web build` (needs `admin-web/.env.production` `VITE_ADMIN_GOOGLE_CLIENT_ID`, gitignored) → `wrangler pages deploy dist --project-name=retrobat-admin --branch=main`.
+- **Installer** (PowerShell, native paths — ISCC via git-bash mangles backslash args): `& "C:\Users\a\AppData\Local\Programs\Inno Setup 6\ISCC.exe" "/DDistDir=D:\es-build\dist" "/DAppVersion=0.1.0" "/OD:\es-build\installer_out" "D:\RetroBat\distro\installer\playvault.iss"` → `PlayVault-Setup-0.1.0.exe`. Excludes preserve user data (roms, account_status.txt, retroarch.cfg, gamelists, *.es-bak). Silent reinstall from automation → Inno exit 2 (needs interactive UAC; installs to `{sd}\PlayVault`).
 
-**▶ TWO FLOWS VERIFIED THIS SESSION (answers to the owner):**
-- **Web → catalog → exe injection WORKS.** The N64 game added on the web is in prod D1 (`n64`, "Army Men - Sarge s Heroes", `size_bytes=8388608` = real `.z64` in R2). BUT `GET /catalog` is **license-filtered** (`services/catalog.ts`): subscribed → all games; trial/none → only `trial_eligible` (or free-window) games. Army Men has **`trial_eligible=0`** → **hidden from a trial account** (owner is `trial_active`). To see it in PlayVault: mark it **Trial** in the admin (edit) OR be subscribed. New games appear on the client's **NEXT catalog sync** (login / open Mi Cuenta), not live while ES is open.
-- **Client updates = notify channel (works), not silent auto-update.** Backend `GET /client/version` reads `CLIENT_*` in `backend/wrangler.toml` (`CLIENT_LATEST_VERSION`, `CLIENT_MIN_VERSION`, `CLIENT_DOWNLOAD_URL`, `CLIENT_RELEASE_NOTES`). Client `UpdateChecker` compares `BrandInfo.AppVersion` on startup → shows a non-blocking notice in the account window (mandatory flag if below MIN). **To push a fix:** (1) fix code → rebuild `PlayVault-Setup` with bumped `BrandInfo.AppVersion` + installer `AppVersion`; (2) host the new installer (R2 public URL); (3) edit `wrangler.toml` `CLIENT_LATEST_VERSION` (+`CLIENT_MIN_VERSION` to force) + `CLIENT_DOWNLOAD_URL` + notes → `cd backend; npx wrangler deploy`; clients notify on next launch. **Gap (now mostly closed 2026-11-15b):** installer **IS hosted** + `CLIENT_DOWNLOAD_URL` **IS set** (see below). Remaining gap = **no silent apply** (user re-runs the installer manually).
+### ▶▶ DIST ASSEMBLY (external `D:\es-build\dist`, 150M, not in git) — rebuild rules after any change
+- `emulationstation.exe` (staged from ES build) + rcedit toro icon.
+- `resources/window_icon_256.png` = toro 256 (runtime window/taskbar icon; separate from rcedit).
+- `resources/locale/lang/` = copied from ES build-source `locale/lang/` (Spanish + all langs).
+- `.emulationstation/batocera.conf` `system.language=es_ES` (git seed: `distro/seed/.emulationstation/batocera.conf`).
+- `launcher.exe` (self-contained publish).
+- `emulators/retroarch/` pristine RA 1.22.2 (libretro buildbot) + 9 GPL cores + `playvault.cfg` + `playvault-analog.cfg` + `playvault-dpad.cfg` + toro icon via rcedit on retroarch.exe.
+- `roms/` = `distro/seed/roms/*` (nes welcome entry; NO dummy ROMs).
+- `.emulationstation/es_input.cfg` (keyboard default), `es_settings.cfg` (GamelistViewStyle=basic, ThemeSet=elementerial, Language=es_ES), `es_systems.cfg`.
 
-**▶▶ UPDATE CHANNEL WIRED (2026-11-15b, Worker Version `f278c3c0`).** Installer `PlayVault-Setup-0.1.0.exe` (306,656,244 B) uploaded to R2 `retrobat-roms/releases/PlayVault-Setup-0.1.0.exe`. New public route `GET /client/download` (`backend/src/routes/client.ts`) 302-redirects to a short-lived presigned R2 URL (bucket stays private; stable public link). `wrangler.toml` now sets `CLIENT_DOWNLOAD_URL = .../client/download` + `CLIENT_INSTALLER_KEY = releases/PlayVault-Setup-0.1.0.exe`. Verified live: `/client/version` returns the download URL; `/client/download` → 302 → 206 full 292.5 MiB. **To ship a fix:** rebuild installer with bumped `BrandInfo.AppVersion` + installer `AppVersion`; `wrangler r2 object put retrobat-roms/releases/PlayVault-Setup-<ver>.exe --file=... --remote`; edit `wrangler.toml` `CLIENT_LATEST_VERSION` (+`CLIENT_MIN_VERSION` to force) + `CLIENT_INSTALLER_KEY` + notes → `cd backend; npx wrangler deploy`. No contract/API_VERSION change (additive public route).
+---
+## ▶ INFRA / IDs
+- **Cloudflare** (acct `anthoniogarciareyes25@gmail.com`, id `2263e816c670f9c372ddd4db453bc458`): D1 `retrobat-db` (`4ffd9d56-de6d-4a89-b61b-60d2193a072f`, binding `DB`); R2 `retrobat-roms` (binding `ROMS`, S3 `https://2263e816c670f9c372ddd4db453bc458.r2.cloudflarestorage.com`); Pages `retrobat-admin` → https://retrobat-admin-7nj.pages.dev; Worker `retrobat-api` → https://retrobat-api.anthoniogarciareyes25.workers.dev. wrangler via `npx -y wrangler@latest`.
+- **Google OAuth**: Desktop client (id+secret in `backend/.dev.vars`, loopback RFC 8252). Admin WEB client `1046162067802-9jgcu8nl2fdt0haroq9opr6fe2p31cgl.apps.googleusercontent.com` (backend secret `ADMIN_GOOGLE_CLIENT_ID` set; baked into admin build). **Admin panel confirmed e2e** (login + games CRUD + ROM upload).
+- **Secrets**: local `backend/.dev.vars` (gitignored); prod via `wrangler secret put`.
+- **Repo**: `SEinent-byte/retrobat` (private), work branch `feat/distro-gpl-cores`. PAT in Windows Credential Manager (no inline token; push works). `.NET 8` at `C:\Program Files\dotnet`.
+- **Update channel wired**: `GET /client/version` + `GET /client/download` (302→presigned R2). Installer uploaded to R2 `releases/`. To ship a fix: rebuild installer w/ bumped `BrandInfo.AppVersion`+installer `AppVersion`; `wrangler r2 object put ...`; edit `wrangler.toml` `CLIENT_LATEST_VERSION`(+`CLIENT_MIN_VERSION`)+`CLIENT_INSTALLER_KEY`+notes; deploy. No silent apply (user re-runs installer).
+- **Admin game mgmt** (API_VERSION 0.5.0): `GET/PATCH/DELETE /admin/games` — per-console view, rename, trial toggle, console move (+R2 object move), delete, 24h free-window. Army Men trial flag flippable from panel.
 
-### ▶▶ DONE 2026-11-15b — admin game management (owner-requested) — SHIPPED + DEPLOYED
-Closed every gap below. Commit `d6b185b` on `feat/distro-gpl-cores`; contract re-frozen at **API_VERSION 0.5.0**; deployed to prod (Worker Version `cdca5a6b`, `/health` apiVersion 0.5.0) + admin Pages (branch `main`).
-- **Backend** (`backend/src/routes/admin.ts` + `services/admin.ts` + `lib/validation.ts`):
-  - `GET /admin/games[?systemId=]` — full catalog, NOT license-filtered (`listGames`).
-  - `PATCH /admin/games/:id` — edit `title`, `trialEligible`, `systemId` (any subset). Moving console re-validates the ROM extension and **moves the R2 object** (get→put new key→delete old). (`updateGame`.)
-  - `DELETE /admin/games/:id` — deletes the game + `env.ROMS.delete(r2Key)` + its `play_events` rows (`deleteGame`).
-  - Shared: added `PATCH`/`DELETE` to `HttpMethod` + `ROUTES`; new DTOs (`AdminListGames*`, `AdminUpdateGame*`, `AdminDeleteGameResponse`).
-- **Admin UI** (`admin-web/src/App.tsx` `GamesManager` + `api.ts`): new **Games** table under Consoles & Games — per-console filter, inline **Rename** (prompt), **Trial** checkbox toggle, **console move** (select), **24h free-window** set/clear, **Delete** (confirm). Auto-refreshes after a create+upload. (So Army Men's `trial_eligible` is now flippable from the panel — no more manual D1 UPDATE.)
-- Gates: `tsc --noEmit` green on shared/backend/admin-web. (Biome + vitest not installed locally; no test files exist.)
+---
+## ▶ PENDING
+- **Billing (step 9)** — BLOCKED on USER choosing payment provider (Stripe recommended) + per-country methods.
+- **License docs finalization** — fill `<CONTACT>`/`<PRODUCT-DOMAIN>` in `distro/licenses/` (WRITTEN-OFFER, CORRESPONDING-SOURCES), pin per-core source commits, mirror source tarballs to R2.
+- **Installer rebuild** (dist changed this session) + bundle `vc_redist.x86`.
+- **Domain** — USER buys (non-blocking; loopback OAuth needs none).
+- **Thumbnails/boxart** — not supported (feature gap): GameDto has no image field; needs contract bump + admin artwork upload→R2 + client writes `<image>` to gamelist. Medium.
+- **First-run with 0 ROMs** — `FirstRunSeed.Seed` has no caller + `roms\*` installer-excluded → fresh machine may show empty carousel; verify or wire seed at startup. Seed `distro/seed/roms/nes` ships a welcome entry.
+- **Elementerial theme** bundles console brand logos (owners' property) → review/replace with neutral art before commercial release.
+- **RetroArch internal menu** (F1/Ozone) still shows RetroArch name/logo — deep rebrand needs GPL asset edits/recompile. Window title + taskbar already "PlayVault" (borderless, no title bar in play).
 
-### ▶▶ (superseded) admin game management — gaps (now all fixed above)
-The owner cannot manage the catalog after creating a game. Gaps found this session:
-- **No games-per-console view.** The Consoles&Games tab lists consoles only; you cannot see which games a console contains. There is **no `GET /admin/games`** endpoint (the user-facing `GET /catalog` is license-filtered, not for admin).
-- **No edit-game.** The "Trial" checkbox in *Add game* applies **only at creation**; it does NOT edit an existing game. There is no `PATCH /admin/games/:id` to toggle `trial_eligible`, rename, or move console. (Confirmed: Army Men stayed `trial_eligible=0` after the owner re-checked Trial; flipping it needs a direct D1 `UPDATE games SET trial_eligible=1 WHERE id=...` for now.)
-- **No delete-game** (`DELETE /admin/games/:id` + delete the R2 object).
-- **Temporary 24h availability already half-built:** `POST /admin/games/:id/free-window` exists (`setFreeWindow` sets `freeFrom`/`freeUntil`; the catalog filter already honors it via `freeOrTrialEligible`). It is **not surfaced in the admin UI**. This is the per-GAME global window; a per-USER 24h grant of a specific game would be new logic (current `grantTime` only extends trial days, not per-game).
-- **Work (next session):** backend add `GET /admin/games` (optionally `?systemId=`), `PATCH /admin/games/:id` (title, trialEligible, systemId), `DELETE /admin/games/:id` (+ `env.ROMS.delete(r2Key)`); shared contract bump + re-freeze + `API_VERSION`; admin UI: per-console games table with edit (trial toggle, rename), delete, and a free-window (24h) control. Endpoints live today: `/admin/games` (POST create), `/admin/games/:id/rom` (POST upload), `/admin/games/:id/free-window` (POST). Admin routes file: `backend/src/routes/admin.ts`; service: `backend/src/services/admin.ts`; UI: `admin-web/src/App.tsx` (Catalog component).
-
-### ▶▶ FULL PIPELINE VALIDATED END-TO-END THIS SESSION (2026-11-13, clean install)
-Real clean-dir install → ES windowed → login Google (`anthoniogarciareyes25@gmail.com`) → trial active ("6d 17h") → CatalogSync → Mi Cuenta live status → select game → license check → R2 presigned → HttpDownloadManager + ProgressWindow → RetroArch FCEUmm launched. EVERY stage worked. Only "nothing plays" = the prod catalog has ONE game and it is a 528-byte PLACEHOLDER (not a real ROM) → FCEUmm opens gray. NOT a bug; content gap. This is exactly the owner's intended pipeline (web: add game + upload ROM to R2 → exe shows it on next catalog sync → download+play). CAVEAT the owner should know: new games appear on the client's NEXT catalog sync (login / open Mi Cuenta), NOT pushed live while the exe is open.
-
-### ▶▶ NEW PENDING (surfaced this session — pick next session)
-1. **Admin WEB OAuth client — DONE (2026-11-15).** Created Google **Web** OAuth client `1046162067802-9jgcu8nl2fdt0haroq9opr6fe2p31cgl.apps.googleusercontent.com` (JS origins `https://retrobat-admin-7nj.pages.dev` + `http://localhost:5173`). Backend secret `ADMIN_GOOGLE_CLIENT_ID` set + verified (`wrangler secret list`). Frontend: admin-web deploys **direct-upload** (no CF build) → Pages dashboard var is a no-op; baked `VITE_ADMIN_GOOGLE_CLIENT_ID` into local build via `admin-web/.env.production` (gitignored), `pnpm --filter @retrobat/admin-web build`, `wrangler pages deploy dist --project-name=retrobat-admin --branch=main`. Prod verified serving the id. **CONFIRMED e2e 2026-11-15:** logged in at https://retrobat-admin-7nj.pages.dev as `anthoniogarciareyes25@gmail.com`, panel loaded (Consoles + Add game + Upload ROM). Owner can now add games + upload ROMs via web. Fully closed.
-2. **Thumbnails / boxart — NOT supported (feature gap).** `GameDto` has no image field and there is no admin artwork endpoint (verified). Owner wants: upload art on web → shows in the exe UI. Work: add image field to `/shared` GameDto (contract bump + re-freeze), admin artwork upload → R2, catalog returns it, client downloads the thumb on sync and writes `<image>` into gamelist.xml (ES needs a LOCAL image path). Medium.
-3. **Carousel/wheel theme — DONE 2026-11-15.** Shipped **es-theme-elementerial** (mluizvitor, @`e710525`, **MIT** — carousel + wheel + art, Batocera/RetroBat-engine compatible). Vendored `distro/theme/elementerial` (+ LICENSE.md); seed + dist + `C:\PlayVault` es_settings `ThemeSet=elementerial`; THIRD-PARTY-LICENSES updated. Boots clean (0 errors; benign `Unknown property` warnings = newer theme-engine attrs our ES build ignores). `playvault-dark` kept as fallback. HyperMax (the look owner first saw) stays rejected (CC BY-NC-SA). ⚠ **Before commercial release:** the theme bundles console **brand logos** (property of owners) — review/replace with neutral art. Evaluated alts: es-theme-albedo (MIT, also OK), es-theme-neutral + canvas-es (NC/ambiguous → rejected).
-4. **Dedup "Mi Cuenta" to one console (quick).** CatalogSync currently writes the Mi Cuenta entry into EVERY synced console → the "Todos los juegos" auto-collection shows it (and each game) duplicated per console. Pick one welcome console for the account entry. Small fix in `CatalogSync.SyncAsync`.
-
-### ▶▶ STILL OPEN (older)
-- **Billing** (step 9; BLOCKED — needs USER to choose a payment provider, Stripe recommended, + per-country methods).
-- **Finalize license docs** (needs USER contact email + product domain). Fill `<CONTACT>`/`<PRODUCT-DOMAIN>`, pin per-core source commits, mirror source tarballs to R2.
-- **Installer polish**: bundle `vc_redist.x86`, set `CLIENT_DOWNLOAD_URL`. **Domain** (user, non-blocking).
-
-**What works right now (prod):**
-- Backend Worker live, all user + admin endpoints + ROM upload + `/client/version`. Prod Version `f3dd3e06`, apiVersion 0.4.0 (redeploy: `cd backend; npx wrangler deploy` — PowerShell uses `;` not `&&`).
-- Client WPF: Google login, fingerprint, trial, anti-tamper, catalog sync. Email now persisted (DPAPI).
-- Admin panel live: https://retrobat-admin-7nj.pages.dev (login needs web-client, see Pending USER). ROM upload UI added.
-- ES-native: games show inside RetroBat; proxy downloads ROM on launch (HTTPS direct). "Mi Cuenta" native entry (avatar + live trial status + login/trial/logout menu). Proxy INSTALLED on this machine.
-- Distro Phase 1: proxy can launch RetroArch DIRECTLY per core (no RetroBat emulatorLauncher). Verified: `-core fceumm -rom test.nes` launched RetroArch.
-
-**Progress breakdown:**
+---
+## ▶ PROGRESS
 | Area | % |
 |---|---|
 | Infra / auth / license / trial / anti-farm / anti-tamper | 100 |
 | Catalog / R2 download / play analytics | 100 |
-| Admin API + panel + ROM upload (deployed `c197a131`) | 95 (login needs web-client) |
-| ES-native integration (sync + proxy + Mi Cuenta) | 95 (real-ROM emulation PASSED via launcher→RetroArch) |
+| Admin API + panel + ROM upload + game mgmt | 100 |
+| ES-native integration (sync + proxy + Mi Cuenta widget + click) | 100 |
+| Standalone distro (own MIT/GPL frontend, rebrand PlayVault, theme, keyboard/controls UX, locale) | ~92 (missing: installer rebuild, license placeholders, vcredist) |
 | Billing (step 9) | 0 — BLOCKED on provider |
-| Domain (step 10) | 0 — user, NON-blocking (loopback OAuth needs no domain) |
-| Standalone distro (own MIT/GPL frontend) | ~85 (ES boots; real-ROM emulation PASSED; es_systems emitted at login; pristine RetroArch + source offer; installer builds (PlayVault-Setup, rebuilt 2026-11-15); own theme; rebrand to PlayVault (user-facing); auto-update code-complete; first-run bootstrap done. Missing: license-doc placeholders, vcredist, installer rebuild + clean-dir test) |
+| Domain (step 10) | 0 — user, non-blocking |
 
-**▶ ACTIVE TRACK: standalone commercial distro (replaces RetroBat).**
-Decision (see memory `retrobat-licensing-distribution`): CANNOT bundle RetroBat (CC BY-NC-SA NonCommercial). Build our own Windows distro from MIT (batocera-emulationstation) + GPL (RetroArch) + our branding. **Full plan: `C:\Users\a\.claude\plans\fuzzy-leaping-fiddle.md`.**
-- **DONE Phase 1** (commit `08dc783`): launcher runs `retroarch.exe -L cores\<core>_libretro.dll <rom>` (distro mode) with fallback to RetroBat launcher; CatalogSync generates own `es_systems.cfg.dist` from catalog (DefaultCore baked into command). NOT yet: live-test of es_systems.cfg.dist (needs a sync), real-ROM emulation.
-- **DONE Phase 0 — core licenses** (this session): web-audited all 8 cores. Non-commercial confirmed: `snes9x`, `genesis_plus_gx`, `picodrive` (MAME). Swapped to GPL: `snes9x`→`bsnes`, `genesis_plus_gx`→`blastem` (MD) + `gearsystem` (MS). Commercial-OK kept: fceumm GPLv2, gambatte GPLv2, mgba MPL2, mupen64plus_next GPLv3, pcsx_rearmed GPLv2, desmume GPLv2. Edited `backend/seeds/0001_systems.sql` + added `0002_core_licenses.sql` (idempotent UPDATE); applied to D1 **local + remote**. All 9 commercial-safe core DLLs staged on disk (`emulators/retroarch/cores`); downloaded missing 4 (mgba, blastem, mupen64plus_next, pcsx_rearmed) from libretro buildbot. GPL obligation: ship source offer for GPLv3/MPL2 cores at distribution.
-- **DONE Phase 0 — ES binary** (this session, Option A chosen = build from source): `emulationstation.exe` **compiled + boots standalone on Windows** from MIT source. License settled: both `batocera-linux/batocera-emulationstation` and the Windows-maintained fork `RetroBat-Official/emulationstation` carry identical `LICENSE.md` = **MIT** (Alec Lofquist 2014). RetroBat's NC (CC BY-NC-SA) covers only its bundle/assets, NOT the ES engine source. So a from-source build is a clean MIT frontend.
-  - **Validated (scratch-home boot, `--debug` log)**: `Window::init` → OpenGL context (RTX 3050) → `Loading system config file es_systems.cfg` (6ms) → `SystemView` → `fireEvent: system-selected nes`. Engine renders + loads our es_systems.cfg + shows a system. (GUI subsystem app: stdout not on console; verified via `es_log.txt`.)
-  - **BUILD RECIPE (reproducible, next session):**
-    - Source: `RetroBat-Official/emulationstation` branch **master** (NOTE default branch `autopull` is an empty mirror — must `git fetch --depth 1 origin master && git checkout -B master FETCH_HEAD`). Cloned at **`D:\es-build\emulationstation`** (outside git repo; external). pugixml submodule init'd.
-    - Toolchain: VS **Build Tools 2022** + MSVC 14.44 + Windows SDK 10.0.22621 + **ATL component** `Microsoft.VisualStudio.Component.VC.ATL` (required — `TextToSpeech.cpp` includes `<sphelper.h>`→`atlbase.h` unconditionally even with TTS off; installed elevated via `setup.exe modify --installPath ... --add ... --quiet --norestart --force`) + **CMake 4.4.4** (winget `Kitware.CMake`, at `C:\Program Files\CMake\bin\cmake.exe`, not on PATH).
-    - Required source patch (MSVC 14.44 strictness): `es-core/src/Log.cpp` add `#include <chrono>` (uses `std::chrono::system_clock` without the include). UNCOMMITTED in the external clone — re-apply on fresh clone; carry as a patch file when we vendor the build.
-    - Configure: `cmake -S . -B build -G "Visual Studio 17 2022" -A Win32 -DRETROBAT=OFF -DBATOCERA=OFF` → win32 deps auto-download via FetchContent from `batocera-linux/batocera-emulationstation-win32-dependencies` into `win32-libs/` (276M: SDL2, freetype[static], FreeImage, SDL2_mixer, curl 8.1.2, libvlc, rapidjson).
-    - Build: `cmake --build build --config Release --parallel` → **`bin/Win32/Release/emulationstation.exe`** (7.4MB, x86). (Kill stale `MSBuild.exe`/`vctip.exe` before any VS-installer modify, else pre-check `VSProcessesRunning` 8006.)
-    - Runtime staging (beside exe): copy x86 DLLs `FreeImage, SDL2, SDL2_mixer (+optional/*), libcurl, libvlc, libvlccore` + `libvlc/x86/plugins/` dir + `resources/` dir. freetype is static (no DLL).
-  - **OPEN decisions**: (1) `-DRETROBAT` ON vs OFF — built OFF (generic MIT, no RetroBat code/marks), boots fine; ON enables RetroBat-specific paths/branding. (2) x86 vs x64 — built Win32/x86; `-A x64` supported (CUSTOM_PLATFORM x64). (3) theme: ran on ES built-in fallback (ES-Carbon default); ship own/open theme at Phase 4.
-- **DONE this session — dist/ tree ASSEMBLED + BOOTS** (external, at **`D:\es-build\dist`**, 150M, NOT in git repo). Standalone tree that runs with zero RetroBat dependency:
-  ```
-  emulationstation.exe + 10 runtime DLLs (FreeImage,SDL2,SDL2_mixer+4 optional,libcurl,libvlc,libvlccore) + plugins/ (vlc) + resources/
-  emulators/retroarch/retroarch.exe + cores/ (9: fceumm,bsnes,gambatte,mgba,blastem,gearsystem,mupen64plus_next,pcsx_rearmed,desmume)
-  launcher.exe            (= client RetroBat.Launcher Release win-x64 build, framework-dependent → needs .NET 8 Desktop runtime)
-  .emulationstation/es_systems.cfg (10 systems; <command>="%HOME%\launcher.exe" -system <id> -core <core> -rom %ROM%) + es_settings.cfg
-  roms/<10 folders>/      (dummy test ROMs, one per system)
-  ```
-  - **Validated**: `emulationstation.exe --home <dist> --windowed --debug` → log `Loading system config file D:/es-build/dist/.emulationstation/es_systems.cfg` (5ms) + `system-selected gb`, ran full, no errors. ES resolves `%HOME%`=dist root and `~`=home, so `~\roms\<folder>` + `%HOME%\launcher.exe` point inside dist. es_systems.cfg generated by `scratchpad/gen_es_systems.sh` (printf-based; heredoc backslash escaping failed, Python is a Store stub = unavailable — use bash printf or write files directly).
-  - **NO theme bundled**: both on-disk themes are NonCommercial — `HyperMax-Plus-PixN` AND `es-theme-carbon` = **CC-BY-NC-SA** (verified carbon readme.txt). Runs on ES built-in fallback (plain look). Own/permissive theme = Phase 4; that theme is what gives the polished "look" (the Marvel/HyperMax screenshot the user saw is RetroBat's NC skin, NOT shippable).
-  - To see it live: `D:\es-build\dist\emulationstation.exe` (plain fallback; real functional UI).
-- **DONE this session — real-ROM emulation test (NEXT step 1) PASSED.** Real SNES ROM (Super Mario Kart `.sfc`, 512K) in `dist\roms\snes`, launched both directly and via the full `launcher.exe → RetroArch` chain. RetroArch 1.22.2 loaded `bsnes` core + content, GL/GLSL + WASAPI audio, process stayed alive (game running). Two fixes required:
-  1. **launcher.exe must be self-contained single-file.** The dist tree only had the 148K apphost; it needs `RetroBat.Launcher.dll` beside it (framework-dependent) which was never copied → `exit 154`. Published self-contained single-file (`dotnet publish RetroBat.Launcher -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true`, ~162MB exe, no .NET prereq). **Code fix (commit `64fd97b`):** single-file extracts to a temp dir so `AppContext.BaseDirectory` was wrong → `RetrobatPaths` resolved the wrong root → Fatal dialog. Now uses `Environment.ProcessPath`; `FindRoot` also recognizes `emulationstation.exe` at root (distro layout).
-  2. **dist RetroArch was exe-only** (`retroarch.exe` is a Qt build → needed `Qt5Widgets.dll` etc; bare run `exit 127`). Staged the full runtime: 65 top-level DLLs + `assets info shaders database autoconfig system filters overlays` dirs, copied from the local RetroBat install (`D:\RetroBat\emulators\retroarch`; same exe md5). These are RetroArch's own GPL/permissive binaries, NOT RetroBat NC assets. **⚠ For the shippable distro, pull a pristine RetroArch Windows x64 from the libretro buildbot** instead of the RetroBat copy, to keep the license audit unambiguous.
-  - Test cfg (logging to `D:\es-build\ralog\retroarch.log`): `D:\es-build\ra_test.cfg`. Re-run direct: `cd D:\es-build\dist\emulators\retroarch && retroarch.exe --config D:\es-build\ra_test.cfg -v -L cores\bsnes_libretro.dll <rom>`.
-- **DONE this session — es_systems runtime emission (NEXT step 2) PASSED** (commit `c0c76c4`). `CatalogSync.WriteEsSystems` now detects the distro layout (`IsDistro` = `emulationstation.exe` at root) and writes the real `es_systems.cfg` into `dist\.emulationstation` with `%HOME%\launcher.exe` + `~\roms\<folder>` (RetroBat dev install still gets the `.dist` sidecar + `emulatorLauncher` proxy command, never clobbered). `RetrobatPaths` gained `IsDistro`, `LauncherExeName`, distro-aware `EmulationStationHome`. Verified via reflection harness: generated config byte-identical (modulo trailing newline) to the hand-validated one; ES parsed it and built the SystemView (`Loading system config file ...es_systems.cfg` → `system-selected gb`). Harness: `scratchpad/es_test` (external, throwaway). Backup of hand file: `dist\.emulationstation\es_systems.cfg.validated`.
-- **DONE this session — shippable distro blocks A–E (commits `5a8b7c9`, `f7cde1a`, `56cd994`, `5b64bdd`).**
-  - **A — license-clean RetroArch + source offer.** Pristine RetroArch 1.22.2 Windows x86_64 pulled from the libretro buildbot (`buildbot.libretro.com/stable/1.22.2/windows/x86_64/RetroArch.7z`, 202MB) now backs `dist\emulators\retroarch` (retroarch.exe md5 identical to the RetroBat copy → provenance now unambiguous); our 9 GPL cores preserved; re-ran a real ROM OK. `distro/licenses/`: THIRD-PARTY-LICENSES (verified via libretro `.info`: fceumm/gambatte/mupen64plus_next/pcsx_rearmed/desmume GPLv2, bsnes/blastem/gearsystem GPLv3, mgba MPL-2.0, RetroArch GPLv3, ES MIT), WRITTEN-OFFER, CORRESPONDING-SOURCES, + canonical texts. Copied into `dist\licenses`. **TODO before release:** fill `<CONTACT>`/`<PRODUCT-DOMAIN>` + pin per-core source commits.
-  - **B — installer.** `distro/installer/playvault.iss` (Inno Setup). Installs to `{sd}\PlayVault` (writable), Start Menu/desktop shortcut → `emulationstation.exe --home "{app}"`, excludes runtime state, uninstall cleanup. Built with ISCC (at `C:\Users\a\AppData\Local\Programs\Inno Setup 6\ISCC.exe`, installed via winget) → `D:\es-build\installer_out\PlayVault-Setup-0.1.0.exe`. **TODO:** bundle `vc_redist.x86.exe` (MSVC-built ES).
-  - **C — own theme.** `distro/theme/playvault-dark` (MIT, colors over default layout, accent `#1f6feb`). Installed to `dist\.emulationstation\themes`, `es_settings.cfg` ThemeSet=playvault-dark. ES loads it with no theme errors. (Licensing already satisfied: distro ships no NC theme.)
-  - **D — rebrand → PlayVault (2026-11-15).** `RetroBat.Core.Branding.BrandInfo` (Name/FullName "PlayVault", AppVersion, HKCU key `Software\PlayVault`). All user-facing product strings route through it; admin web uses `APP_NAME` in `admin-web/src/config.ts`. Internal namespaces (`RetroBat.*`), assemblies, repo, theme folder id history, and DPAPI entropy strings keep the RetroBat prefix (never shown; renaming = churn). (Registry key moved → existing persisted session dropped.)
-  - **D2 — brand logo (toro / blue bull), 2026-11-15.** Source `distro/brand/toro-source.png` processed (white→transparent, squared, multi-size) to `distro/brand/toro.{png,ico}`. Surfaced: admin web favicon + header/login logo (`admin-web/public/toro.png` + `favicon.ico`, deployed); WPF App + Launcher `ApplicationIcon` (taskbar/exe) + logo image in MainWindow / AccountMenuWindow / ProgressWindow (`client/*/Assets/toro.{ico,png}`). Launcher republished to dist + installer rebuilt + `C:\PlayVault` updated (md5 verified). **ES exe icon DONE** — `emulationstation.exe` resource icon set with rcedit (`scratchpad/logo/rcedit-x64.exe`, from electron/rcedit v2.0.0) on both dist + install: `rcedit-x64.exe <es.exe> --set-icon distro\brand\toro.ico`. ⚠ **Build step, NOT reproducible from source** (ES is a prebuilt exe) — re-run rcedit on `dist\emulationstation.exe` after assembling dist, before building the installer. **Runtime window/taskbar icon is SEPARATE** (2026-11-15b): ES loads `:/window_icon_256.png` from `resources/window_icon_256.png` at startup (`Renderer::setIcon`, file not embedded). rcedit (exe file icon, Explorer/shortcut) does NOT change it. Replaced `resources\window_icon_256.png` with toro resized to 256x256 (System.Drawing) in live `C:\PlayVault`, `D:\es-build\dist`, and build-source `D:\es-build\emulationstation` (originals kept as `*.es-bak`). **Build step: overwrite `dist\resources\window_icon_256.png` with toro-256 after assembling dist.** **Mi Cuenta avatar DONE** — now the toro PNG (embedded resource in RetroBat.Services → `_mi_cuenta.png`), replacing the old SVG glyph; static seed regenerated. **Game Bar:** disabled GameDVR in HKCU (`System\GameConfigStore\GameDVR_Enabled=0`, `...\GameDVR\AppCaptureEnabled=0`) to stop the `ms-gamingoverlay` no-handler popup — a machine/env fix, not shipped with the product.
-  - **E — auto-update.** Public `GET /client/version` (backend `routes/client.ts`, `CLIENT_*` vars in `wrangler.toml`). Shared `ClientVersionResponse`, API_VERSION 0.3.0→**0.4.0**. Client `UpdateChecker` (best-effort semver, non-blocking on startup) surfaces an update notice in the account window. **DEPLOYED** to prod (Worker Version `f3dd3e06`, apiVersion 0.4.0); `GET /client/version` live → `{"latestVersion":"0.1.0","minVersion":"0.1.0","downloadUrl":"","notes":""}`. Bump `CLIENT_*` + `BrandInfo.AppVersion` per release.
--   - **F — first-run bootstrap** (commit `bb58667`). Closed the chicken-egg gap: a fresh install shipped `es_systems.cfg` + dummy ROMs but no "Mi Cuenta" (CatalogSync writes it only post-login) → user couldn't reach sign-in. Now a pre-login welcome entry is seeded. `CatalogSync.WriteAccountOnly(dir, ext, status, email)` (reusable, same marker/icon/strings); `FirstRunSeed.Seed(paths)` reads the install's `es_systems.cfg`, seeds the FIRST console (nes) with a single `Mi Cuenta — Sin sesion` entry. Committed static seed at `distro/seed/roms/nes/` (+ README). **Live dist updated: dropped all dummy `test.*` ROMs, copied seed into `dist\roms\nes`.** Validated: `emulationstation.exe --home dist --debug` parses `roms/nes/gamelist.xml`, ignores the 9 empty consoles, shows only the welcome console. Flow: select Mi Cuenta → `AccountMenuWindow` → Google login → `SyncAsync` (AccountMenuWindow.xaml.cs:85) populates all consoles + games.
-    - **⚠ Installer must be rebuilt** — `dist\roms` changed. Assembly rule (distro/seed/README): copy `distro/seed/roms/*` into `dist/roms`, ship NO dummy ROMs.
-  - **G — first-run UX fixes** (commits `60a0fd2`, `9c432bd`). Found during the real clean-install test:
-    - **CONFIGURE INPUT / NO GAMEPADS DETECTED** on first boot (no `es_input.cfg`). Ship a default keyboard mapping `distro/seed/.emulationstation/es_input.cfg` (keyboard-only, from the proven RetroBat keyboard block) → ES skips the prompt, no gamepad needed. Keys: arrows=nav, **x**=A/confirm, **z**=B/back, **Enter**=Start, **Backspace**=Select.
-    - **Illegible overlap**: the detailed view drew the game description over the help bar. `GamelistViewStyle=basic` in `distro/seed/.emulationstation/es_settings.cfg` (hides metadata/desc panel) + keeps `ThemeSet=playvault-dark`.
-    - **Fullscreen covered the desktop**: installer now launches ES `--windowed` (shortcuts + post-install run, `playvault.iss`). Owner preference; drop the flag for a 10-foot full-screen build.
-    - **"Mi Cuenta" window clipped its top button**: `AccountMenuWindow.xaml` → single vertical StackPanel + `SizeToContent=Height`.
-    - **Current artifact** (all fixes + PlayVault rebrand): `D:\es-build\installer_out\PlayVault-Setup-0.1.0.exe` (282M, rebuilt 2026-11-15 with PlayVault launcher + playvault-dark theme; old RGS-Setup deleted). `D:\es-build\clean-test\RGS` is a stale pre-rebrand install. Rebuild installer after any dist change (PowerShell, native paths): `& "C:\Users\a\AppData\Local\Programs\Inno Setup 6\ISCC.exe" "/DDistDir=D:\es-build\dist" "/DAppVersion=0.1.0" "/OD:\es-build\installer_out" "D:\RetroBat\distro\installer\playvault.iss"`. Re-publish launcher after client code change: `dotnet publish RetroBat.Launcher -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true` → copy `...\publish\RetroBat.Launcher.exe` to `dist\launcher.exe`. (ISCC via git-bash mangles backslash args — use PowerShell.)
-**▶ NEXT (resume here):**
-  1. ~~Deploy backend~~ **DONE** (Worker Version `f3dd3e06`, `/client/version` live).
-  2. ~~First-run bootstrap~~ **DONE** (block F above).
-  3. **License docs finalization**: fill `<CONTACT>`/`<PRODUCT-DOMAIN>`, pin per-core source commits, mirror source tarballs (R2).
-  4. **Installer polish**: bundle `vc_redist.x86`, set `CLIENT_DOWNLOAD_URL` to the published installer URL.
-  - Non-distro still open: **billing** (BLOCKED on provider), **domain** (user), **admin web OAuth client** (user, see Pending USER).
-- **Phase 2**: Inno Setup installer, self-contained publish (ES + launcher, no .NET prereq), finalize dist/ tree. **Phase 3**: auto-update (`GET /client/version` on Worker + R2 bundles). **Phase 4**: rebrand (pick product NAME — pending user; user is trying "RGS — Retro Games Saviour") + own theme.
-
-**Other pending (non-distro):**
-- Step 9 billing — BLOCKED on payment provider choice (Stripe recommended).
-- Step 10 domain — user buys domain (non-blocking for MVP).
-- Admin web OAuth client — user (see Pending USER below).
-
-**Repo:** `SEinent-byte/retrobat` (private), branch `main`, clean. Push works (PAT in Credential Manager). `.NET` via `C:\Program Files\dotnet\dotnet.exe`. Build client: `cd client && "C:\Program Files\dotnet\dotnet.exe" build RetroBat.sln`.
-
-**Rollback proxy if needed:** `client/scripts/uninstall-launcher.ps1`. Reinstall proxy after client changes: `client/scripts/install-launcher.ps1` (kill `emulatorLauncher`/`retroarch` procs first if locked).
-
----
-
-## Phase 0: COMPLETE (infra). Disk C: blocker RESOLVED (14G free).
-
-## §14 step 1: DONE — `/shared` contracts FROZEN at `API_VERSION` 0.1.0.
-- `@retrobat/shared` type-only package on `main` (commit `d050579`). `tsc --noEmit` passes.
-- Files: version / enums / models / errors / api / admin / routes. See `shared/README.md`.
-- Fan-out is now UNBLOCKED. Rule: module agents never edit `/shared`; a contract change re-freezes here + bumps `API_VERSION`.
-
-### Cloudflare (account `anthoniogarciareyes25@gmail.com`, id `2263e816c670f9c372ddd4db453bc458`)
-- **D1** `retrobat-db` → id `4ffd9d56-de6d-4a89-b61b-60d2193a072f` (binding `DB`)
-- **R2** bucket `retrobat-roms` (binding `ROMS`); S3 endpoint `https://2263e816c670f9c372ddd4db453bc458.r2.cloudflarestorage.com`
-- **Pages** `retrobat-admin` → https://retrobat-admin-7nj.pages.dev/ (admin panel DEPLOYED)
-- **Worker** `retrobat-api`: DEPLOYED → https://retrobat-api.anthoniogarciareyes25.workers.dev
-- wrangler: logged in as anthonio (OAuth); run via `npx -y wrangler@latest ...`
-- Config: `backend/wrangler.toml` (account_id + D1 + R2 bindings)
-
-### Google OAuth
-- Desktop app client created. id + secret stored in `backend/.dev.vars`.
-- Loopback redirect needs no registration (RFC 8252, Desktop client).
-
-### Secrets
-- Local: `backend/.dev.vars` (gitignored) — `GOOGLE_CLIENT_ID/SECRET`, `JWT_SECRET`, `R2_ACCESS_KEY_ID/SECRET`, `R2_ENDPOINT`, `R2_BUCKET`.
-- Prod: pending `wrangler secret put <NAME>` after first Worker deploy.
-
-### Tooling
-- node v26, pnpm 9.12.0 (global), git 2.55, wrangler via npx. OK.
-- **.NET 8 SDK**: user installed via winget; NOT yet on PATH — verify `dotnet --version` in a NEW shell.
-
-### GitHub
-- Repo PRIVATE: `SEinent-byte/retrobat`, branch `main`.
-- **PAT stored in Windows Credential Manager (GCM).** `git push origin main` works with NO inline token, and survives session clears. Do NOT pass tokens inline anymore.
-- PAT was exposed in chat → rotating is still advised. If rotated, re-store once:
-  ```
-  printf "protocol=https\nhost=github.com\nusername=SEinent-byte\npassword=<NEW_PAT>\n\n" | git credential approve
-  ```
-
-## §14 step 2: DONE — backend auth + license (commit `afaa01c`).
-- Stack: Hono + drizzle-orm/D1 + jose. `pnpm install` done (lockfile committed).
-- D1 schema `migrations/0000` = all SPEC §3 tables + refresh_tokens + admin_audit. Applied LOCAL only.
-- Endpoints live: `POST /auth/exchange|refresh|logout`, `GET /license/status`, `POST /license/activate-trial`.
-- `tsc --noEmit` green. Trial flow verified e2e on `wrangler dev` (none -> trial_active -> trial_already_used).
-## Prod DEPLOYED (2026-11-13)
-- Worker live: **https://retrobat-api.anthoniogarciareyes25.workers.dev** (`/health` ok, apiVersion 0.1.0).
-- All 8 secrets set via `wrangler secret put` (from `.dev.vars`).
-- Remote D1 migrated (`0000` applied, 22 commands).
-- **.NET 8 SDK installed**: 8.0.428 at `C:\Program Files\dotnet`. New shells get it on PATH (winget machine PATH); this bash session may still miss it — call full path if needed.
-
-## §14 step 3: DONE — client WPF login + fingerprint + status (commit `757249b`).
-- .NET 8 WPF, 3 projects (SPEC §2.1): RetroBat.Core / .Services / .App. `dotnet build` green, 0 warnings.
-- Core: C# mirror of shared contracts, DeviceFingerprintProvider (MachineGuid+WMI, SHA-256), PKCE S256.
-- Services: GoogleOAuthFlow (loopback+PKCE), ApiClient (X-Api-Version, typed errors), TokenStore (DPAPI), SessionManager (auto-refresh on 401).
-- App points at prod Worker by default (`ClientConfig.Default`).
-- Build client: `cd client && "C:\Program Files\dotnet\dotnet.exe" build RetroBat.sln`. Run: `... run --project RetroBat.App`.
-- Step 4 (anti-farm) folded into step 2.
-
-## §14 step 5: DONE — client clock anti-tamper (commit in main).
-- `ClockGuard` (Core): DPAPI forward-only high-water mark of server time in HKCU\Software\RetroBat; SessionManager advances it each `/license/status` and warns on local roll-back. Server stays authoritative.
-
-## §14 step 6: DONE — backend catalog + R2 downloads + systems seed (commit `ae55605`).
-- `GET /catalog` (license-filtered), `POST /download/url` (R2 presigned 300s via aws4fetch).
-- `seeds/0001_systems.sql`: 10 RetroBat consoles, applied LOCAL + REMOTE.
-- Deployed to prod (Worker Version `392f5a83`). Verified on dev: visibility, presign, license_required, not_found.
-
-## §14 step 7: DONE — play events + download + launch (commit `3ab38e5`, prod Version `43110f29`).
-- Backend `POST /play/event` (start opens row, end closes it).
-- NOTE: step 7 client parts (GameService, aria2, in-app catalog/Play) were SUPERSEDED by the ES-native pivot below. aria2 removed; downloads are now direct HTTPS.
-
-## Admin seeded
-- `admins`: anthoniogarciareyes25@gmail.com (id `54936e54-...`), remote + local.
-
-## §14 step 8: DONE — admin API + panel (shared 0.2.0, backend Version `86292d74`).
-- Backend `/admin/*`: Google-gated admin sessions, users+grant, analytics (top-games/now-playing), systems upsert, game create (extension validation), free-window, promote; admin_audit on every mutation; CORS on /admin/*.
-- Panel (Vite+React+TS) live: **https://retrobat-admin-7nj.pages.dev** — Users / Consoles&Games / Analytics tabs.
-- Admin login = GIS (needs a Google WEB OAuth client; see below). Verified prod /admin/* with a signed admin token.
-
-## ARCHITECTURE PIVOT (done): ES-native, aria2 dropped (commit `de06962`/`88c83a2`).
-- Games live INSIDE RetroBat (EmulationStation), not a WPF storefront.
-- `CatalogSync` (in WPF, post-login) writes per-game stub `RBSTUB:<gameId>` at `roms\<folder>\<rom>` + `gamelist.xml`. Real downloaded ROMs preserved.
-- `RetroBat.Launcher` = proxy installed AS `emulationstation\emulatorLauncher.exe` (original kept as `emulatorLauncher_real.exe`). On launch: stub -> license check -> presigned R2 -> **direct HTTPS download** (HttpDownloadManager; aria2 removed) -> progress window -> play start -> real launcher -> play end.
-- WPF = account panel only (sign-in, status, start trial, sign out).
-- Install/uninstall: `client/scripts/install-launcher.ps1` / `uninstall-launcher.ps1`. **Proxy INSTALLED on this machine** (original backed up).
-- Verified: isolated wrapper run downloaded real ROM over stub (43->528B, NES header); sync wrote gamelist+preserved ROM; play start/end hit prod.
-- `.NET` note: proxy published framework-dependent single-file (needs .NET 8 Desktop runtime on target).
-
-## ES-native "Mi Cuenta" entry: DONE + validated (commit `0c1ca62`, client-only).
-- `CatalogSync` writes `_mi_cuenta.<ext>` (`RBACCT:` marker, reuses console extension) as first entry of each synced console; name = live status `Mi Cuenta — Prueba: Xd Yh`, desc = email + status.
-- Launch proxy detects `RBACCT:` → opens `AccountMenuWindow` (Google sign-in / activate trial / sign out) instead of a game, then re-syncs.
-- `AccountStatusText` (Spanish, end-user facing). No backend/contract change.
-- Verified live on this machine: WPF login → sync wrote entry (nes/gamelist.xml + `_mi_cuenta.nes`); proxy invoked with account rom opened the menu, exit 0, no RetroArch.
-- Proxy on this machine REINSTALLED with this build.
-- Polish DONE: SVG avatar `<image>` per entry; email persisted (DPAPI) so the entry/menu show it on resumed sessions (`SessionManager.Email` + `TokenStore.SaveEmail`).
-- TODO polish (optional, not done): dedup to one console instead of every console.
-- NOTE: email only appears after the NEXT login (pre-existing persisted session had no stored email).
-
-## Admin ROM upload: DONE + DEPLOYED (commit `5dc7ef9`, shared 0.3.0, prod Version `c197a131`).
-- `POST /admin/games/:id/rom` (admin-gated): raw body → `env.ROMS.put(r2Key)`, updates `size_bytes`, audit `upload_rom`. Returns `{gameId, romFilename, sizeBytes, etag}`.
-- Panel: "Upload ROM" form (prefilled with just-created game id).
-- Smoke-tested on `wrangler dev --local`: create game → upload 30B NES → size_bytes=30, etag returned. Verified, then cleaned up.
-- `API_VERSION` 0.2.0 → 0.3.0 (minor; MAJOR unchanged, no client break). WPF client still sends 0.2.0 — fine (backend rejects MAJOR mismatch only).
-- **Not deployed:** run `cd backend && npx wrangler deploy` to push to prod Worker.
-
-## Distribution (step 5): LICENSE-GATED. Bundle of RetroBat REJECTED.
-- RetroBat content = CC BY-NC-SA 4.0 (NonCommercial): cannot bundle/sell in this paid product. Official terms forbid commercial use + selling pre-installed + shipping copyrighted content.
-- CLEAN PATH: ES engine is permissive — batocera-emulationstation = MIT, ES-DE = MIT, RetroArch = GPLv3 (commercial OK w/ source offer). Build OUR OWN Windows frontend from MIT/GPL upstreams under our branding, no RetroBat NC assets, no BIOS. Proxy already speaks batocera `emulatorLauncher.exe -rom` → low port effort.
-- Options: (A) own distro from batocera-ES MIT [high effort, recommended for commercial], (B) ES-DE MIT [medium, no emulator auto-download], (C) add-on over user's RetroBat [low, NC gray-area → internal/MVP only].
-- Decision PENDING user. See memory `retrobat-licensing-distribution`.
-
-## NEXT: step 9 (billing) BLOCKED — payment provider TBD (SPEC §12). Step 10 (domain) — user.
-
-## Pending USER
-- [x] **Google WEB OAuth client** — DONE 2026-11-15 (see NEW PENDING #1 above). Client id `1046162067802-9jgcu8nl2fdt0haroq9opr6fe2p31cgl.apps.googleusercontent.com`; backend secret + frontend build both carry it; prod deployed. Remaining: USER logs in once to confirm e2e.
-- [ ] **Payment provider** decision to unblock step 9 (Stripe or other).
-- [ ] (optional) **Test client Google sign-in**: `cd client && "C:\Program Files\dotnet\dotnet.exe" run --project RetroBat.App`.
-- [ ] (Optional) Rotate GitHub PAT, then re-store via the `git credential approve` one-liner above.
+**Licensing basis**: cannot bundle RetroBat (CC BY-NC-SA). Own distro from batocera-emulationstation (MIT) + RetroArch (GPLv3, source offer) + GPL cores. See memory `retrobat-licensing-distribution`.
