@@ -46,7 +46,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 ; The whole assembled standalone tree. excludes keep user-writable runtime
 ; state out of the package (created on first run).
 Source: "{#DistDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion; \
-  Excludes: "*.validated,emulators\retroarch\saves\*,emulators\retroarch\states\*,emulators\retroarch\logs\*,emulators\retroarch\screenshots\*"
+  Excludes: "*.validated,*.es-bak,roms\*,.emulationstation\account_status.txt,emulators\retroarch\retroarch.cfg,emulators\retroarch\saves\*,emulators\retroarch\states\*,emulators\retroarch\logs\*,emulators\retroarch\screenshots\*"
 
 [Icons]
 Name: "{group}\{#AppFullName}"; Filename: "{app}\{#AppExeName}"; \

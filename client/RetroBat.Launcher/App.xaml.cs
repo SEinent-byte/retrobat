@@ -233,6 +233,8 @@ public partial class App : Application
             await Task.Delay(400).ConfigureAwait(true);
             if (SystemParametersInfo(SPI_GETWORKAREA, 0, out var wa, 0))
                 MoveWindow(hwnd, wa.Left, wa.Top, wa.Right - wa.Left, wa.Bottom - wa.Top, true);
+            // Rebrand the taskbar label away from "RetroArch <core>".
+            SetWindowText(hwnd, BrandInfo.Name);
         }
         catch
         {
@@ -261,6 +263,10 @@ public partial class App : Application
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SystemParametersInfo(
         uint action, uint param, out Rect rect, uint winIni);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetWindowText(IntPtr hWnd, string text);
 
     private static async Task<int> LaunchRealAsync(string realLauncher, string[] args)
     {
