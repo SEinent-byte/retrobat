@@ -32,6 +32,8 @@ OutputBaseFilename=PlayVault-Setup-{#AppVersion}
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
+; Toro icon on the generated Setup.exe (replaces the default Inno icon).
+SetupIconFile=..\brand\toro.ico
 UninstallDisplayName={#AppFullName}
 UninstallDisplayIcon={app}\{#AppExeName}
 
@@ -60,10 +62,12 @@ Name: "{autodesktop}\{#AppFullName}"; Filename: "{app}\launcher.exe"; \
   IconFilename: "{app}\{#AppExeName}"; Tasks: desktopicon
 
 [Run]
-; Visual C++ runtime for the MSVC-built EmulationStation (Win32/x86).
-; TODO before release: bundle vc_redist.x86.exe under redist\ and enable:
-; Filename: "{tmp}\vc_redist.x86.exe"; Parameters: "/install /quiet /norestart"; \
-;   StatusMsg: "Installing Visual C++ runtime..."; Check: VCRedistNeeded
+; Visual C++ 2015-2022 x86 runtime for the MSVC-built EmulationStation (Win32).
+; Packed under redist\ in the dist tree; runs on every install (the redist
+; is a no-op when a newer runtime is already present), so a clean PC starts
+; without a missing-DLL error. Runs before the app launch entry below.
+Filename: "{app}\redist\vc_redist.x86.exe"; Parameters: "/install /quiet /norestart"; \
+  StatusMsg: "Instalando Visual C++ runtime..."; Flags: waituntilterminated
 Filename: "{app}\launcher.exe"; Parameters: "-boot --home ""{app}"" --windowed"; WorkingDir: "{app}"; \
   Description: "{cm:LaunchProgram,{#AppFullName}}"; Flags: nowait postinstall skipifsilent
 

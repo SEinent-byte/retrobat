@@ -71,7 +71,7 @@ Keyboard + controls UX for the distro, all **global** (one scheme every game/sys
 ## ▶ PENDING
 - **Billing (step 9)** — BLOCKED on USER choosing payment provider (Stripe recommended) + per-country methods.
 - **License docs finalization** — fill `<CONTACT>`/`<PRODUCT-DOMAIN>` in `distro/licenses/` (WRITTEN-OFFER, CORRESPONDING-SOURCES), pin per-core source commits, mirror source tarballs to R2.
-- **vc_redist.x86 bundling** — still TODO (`.iss [Run]` commented): a tester machine without the MSVC x86 runtime can fail to start ES. Installer itself rebuilt this session.
+- ~~vc_redist.x86 bundling~~ **DONE**: `dist\redist\vc_redist.x86.exe` packed; `.iss [Run]` installs it (`/install /quiet /norestart`, waituntilterminated) before launch, so a clean PC starts without a missing-DLL error. Verified on a real uninstall→reinstall (VC x86 v14.44 present after). Setup.exe now carries the toro icon (`SetupIconFile=..\brand\toro.ico`).
 - **Content versioning (Caso 1)** — re-upload to an existing game id does not reach clients that already downloaded it; add a `sha256`/version to `GameDto` (response field exists) + client re-download on mismatch.
 - **Domain** — USER buys (non-blocking; loopback OAuth needs none).
 - **Thumbnails/boxart** — not supported (feature gap): GameDto has no image field; needs contract bump + admin artwork upload→R2 + client writes `<image>` to gamelist. Medium.
